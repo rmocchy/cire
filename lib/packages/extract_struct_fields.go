@@ -121,14 +121,3 @@ func parseFieldType(fieldName string, fieldType types.Type) FieldInfo {
 
 	return info
 }
-
-// derefType はポインタ型を再帰的に剥がす
-func derefType(t types.Type) types.Type {
-	for {
-		ptr, ok := t.(*types.Pointer)
-		if !ok {
-			return t
-		}
-		t = ptr.Elem()
-	}
-}
