@@ -19,8 +19,8 @@ type userRepositoryImpl struct {
 }
 
 // NewUserRepository はUserRepositoryの新しいインスタンスを作成
-func NewUserRepository() UserRepository {
-	return &userRepositoryImpl{}
+func NewUserRepository() (UserRepository, error) {
+	return &userRepositoryImpl{}, nil
 }
 
 func (r *userRepositoryImpl) FindByID(id int) (*User, error) {

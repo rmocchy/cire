@@ -15,9 +15,21 @@ import (
 // Injectors from wire.go:
 
 // InitializeUserHandler は全ての依存関係を解決してUserHandlerを初期化
-func InitializeUserHandler() *handler.UserHandler {
-	userRepository := repository.NewUserRepository()
+func InitializeUserHandler() (*ControllerSet, error) {
+	userRepository, err := repository.NewUserRepository()
+	if err != nil {
+		return nil, err
+	}
 	userService := service.NewUserService(userRepository)
 	userHandler := handler.NewUserHandler(userService)
-	return userHandler
+	controllerSet := &ControllerSet{
+		handler: userHandler,
+	}
+	return controllerSet, nil
+}
+
+// wire.go:
+
+type ControllerSet struct {
+	handler *handler.UserHandler
 }
