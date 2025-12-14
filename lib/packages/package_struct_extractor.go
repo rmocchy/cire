@@ -22,11 +22,15 @@ type StructFieldsInfo struct {
 	Fields     []FieldInfo // フィールド情報のリスト
 }
 
-// ExtractStructFields はpackagePathと構造体名から構造体のフィールド情報を取得する
-func ExtractStructFields(packagePath, structName string) (*StructFieldsInfo, error) {
+// ExtractStructFields は作業ディレクトリを指定してpackagePathと構造体名から構造体のフィールド情報を取得する
+// workDir: パッケージ解決の基準となる作業ディレクトリ（空文字列の場合はカレントディレクトリ）
+// packagePath: パッケージパス（モジュールパスまたは相対パス）
+// structName: 取得する構造体の名前
+func ExtractStructFields(workDir, packagePath, structName string) (*StructFieldsInfo, error) {
 	// パッケージをロード
 	cfg := &packages.Config{
-		Mode: packages.NeedTypes | packages.NeedImports | packages.NeedDeps | packages.NeedName,
+		Mode: packages.LoadAllSyntax,
+		Dir:  workDir,
 	}
 
 	pkgs, err := packages.Load(cfg, packagePath)
