@@ -12,7 +12,7 @@ import (
 type WireAnalyzer struct {
 	workDir       string
 	searchPattern string
-	analyzed      map[string]*StructAnalysisResult // 解析済みの構造体をキャッシュ（無限ループ防止）
+	analyzed      map[string]*StructNode // 解析済みの構造体をキャッシュ（無限ループ防止）
 }
 
 // NewWireAnalyzer は新しいWireAnalyzerを作成する
@@ -20,35 +20,35 @@ func NewWireAnalyzer(workDir, searchPattern string) *WireAnalyzer {
 	return &WireAnalyzer{
 		workDir:       workDir,
 		searchPattern: searchPattern,
-		analyzed:      make(map[string]*StructAnalysisResult),
+		analyzed:      make(map[string]*StructNode),
 	}
 }
 
 // AnalyzeWireFile はwire.goファイルを解析する
-func (wa *WireAnalyzer) AnalyzeWireFile(wireFilePath string) ([]StructAnalysisResult, error) {
+func (wa *WireAnalyzer) AnalyzeWireFile(wireFilePath string) ([]*StructNode, error) {
 	// wire.goから構造体を取得
 	functions, err := file.ParseWireFileStructs(wireFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse wire file: %w", err)
 	}
 
-	var results []StructAnalysisResult
+	var results []*StructNode
 
 	// 各関数の返り値構造体を解析
 	for _, funcInfo := range functions {
 		for _, structInfo := range funcInfo.ReturnTypes {
 			// 構造体を再帰的に解析
-			result, err := wa.analyzeStruct("", structInfo.Name)
+			structNode, err := wa.analyzeStruct("", structInfo.Name)
 			if err != nil {
 				// エラーがあっても他の構造体の解析を続ける
-				results = append(results, StructAnalysisResult{
+				results = append(results, &StructNode{
 					StructName: structInfo.Name,
 					Skipped:    true,
 					SkipReason: fmt.Sprintf("failed to analyze: %v", err),
 				})
 				continue
 			}
-			results = append(results, *result)
+			results = append(results, structNode)
 		}
 	}
 
@@ -56,7 +56,7 @@ func (wa *WireAnalyzer) AnalyzeWireFile(wireFilePath string) ([]StructAnalysisRe
 }
 
 // analyzeStruct は構造体を再帰的に解析する
-func (wa *WireAnalyzer) analyzeStruct(packagePath, structName string) (*StructAnalysisResult, error) {
+func (wa *WireAnalyzer) analyzeStruct(packagePath, structName string) (*StructNode, error) {
 	// キャッシュキーを生成
 	cacheKey := packagePath + "." + structName
 	if packagePath == "" {
@@ -74,7 +74,7 @@ func (wa *WireAnalyzer) analyzeStruct(packagePath, structName string) (*StructAn
 		return nil, fmt.Errorf("failed to extract struct fields for %s: %w", structName, err)
 	}
 
-	result := &StructAnalysisResult{
+	result := &StructNode{
 		StructName:    structName,
 		PackagePath:   packagePath,
 		InitFunctions: make([]InitFunctionInfo, 0),
@@ -139,7 +139,6 @@ func (wa *WireAnalyzer) analyzeField(field packages.FieldInfo) FieldNode {
 			FieldName:      field.Name,
 			TypeName:       field.TypeName,
 			PackagePath:    field.PackagePath,
-			IsPointer:      field.IsPointer,
 			ResolvedStruct: resolvedStruct,
 			Skipped:        skipReason != "",
 			SkipReason:     skipReason,
@@ -153,10 +152,9 @@ func (wa *WireAnalyzer) analyzeField(field packages.FieldInfo) FieldNode {
 			// エラーの場合はnilを返す（スキップ）
 			return nil
 		}
-		return &StructNode{
-			FieldName: field.Name,
-			Struct:    resolvedStruct,
-		}
+		// FieldNameをセットして返す
+		resolvedStruct.FieldName = field.Name
+		return resolvedStruct
 	}
 
 	// 基本型などはスキップ（nilを返す）
@@ -164,7 +162,7 @@ func (wa *WireAnalyzer) analyzeField(field packages.FieldInfo) FieldNode {
 }
 
 // resolveInterface はインターフェースから具体的な構造体を解決する
-func (wa *WireAnalyzer) resolveInterface(field packages.FieldInfo) (*StructAnalysisResult, string) {
+func (wa *WireAnalyzer) resolveInterface(field packages.FieldInfo) (*StructNode, string) {
 	// インターフェースを参照する関数を検索
 	refs, err := packages.FindInterfaceReferences(
 		wa.workDir,

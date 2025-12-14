@@ -19,12 +19,12 @@ func TestWireAnalyzer_AnalyzeWireFile(t *testing.T) {
 
 	// 結果を表示
 	for _, result := range results {
-		printStructAnalysis(t, &result, 0)
+		printStructAnalysis(t, result, 0)
 	}
 }
 
 // printStructAnalysis は構造体の解析結果を階層的に表示する
-func printStructAnalysis(t *testing.T, result *StructAnalysisResult, indent int) {
+func printStructAnalysis(t *testing.T, result *StructNode, indent int) {
 	prefix := ""
 	for i := 0; i < indent; i++ {
 		prefix += "  "
@@ -45,27 +45,26 @@ func printStructAnalysis(t *testing.T, result *StructAnalysisResult, indent int)
 	}
 
 	for _, fieldNode := range result.Fields {
-		if structNode, ok := fieldNode.(*StructNode); ok {
+		switch fieldNode.NodeType() {
+		case NodeTypeStruct:
 			// 構造体フィールドの場合
+			structNode := fieldNode.(*StructNode)
 			t.Logf("%s>%s ->", prefix, structNode.FieldName)
-			printStructAnalysis(t, structNode.Struct, indent+1)
-		} else if interfaceNode, ok := fieldNode.(*InterfaceNode); ok {
+			printStructAnalysis(t, structNode, indent+1)
+		case NodeTypeInterface:
 			// インターフェースフィールドの場合
-			pointer := ""
-			if interfaceNode.IsPointer {
-				pointer = "*"
-			}
+			interfaceNode := fieldNode.(*InterfaceNode)
 
 			if interfaceNode.Skipped {
-				t.Logf("%s>%s -> %s%s -> [SKIPPED] %s",
-					prefix, interfaceNode.FieldName, pointer, interfaceNode.TypeName, interfaceNode.SkipReason)
+				t.Logf("%s>%s -> %s -> [SKIPPED] %s",
+					prefix, interfaceNode.FieldName, interfaceNode.TypeName, interfaceNode.SkipReason)
 			} else if interfaceNode.ResolvedStruct != nil {
-				t.Logf("%s>%s -> %s%s ->",
-					prefix, interfaceNode.FieldName, pointer, interfaceNode.TypeName)
+				t.Logf("%s>%s -> %s ->",
+					prefix, interfaceNode.FieldName, interfaceNode.TypeName)
 				printStructAnalysis(t, interfaceNode.ResolvedStruct, indent+1)
 			} else {
-				t.Logf("%s>%s -> %s%s",
-					prefix, interfaceNode.FieldName, pointer, interfaceNode.TypeName)
+				t.Logf("%s>%s -> %s",
+					prefix, interfaceNode.FieldName, interfaceNode.TypeName)
 			}
 		}
 	}
@@ -99,11 +98,11 @@ func ExampleWireAnalyzer_AnalyzeWireFile() {
 	}
 
 	for _, result := range results {
-		printStructAnalysisExample(&result, 0)
+		printStructAnalysisExample(result, 0)
 	}
 }
 
-func printStructAnalysisExample(result *StructAnalysisResult, indent int) {
+func printStructAnalysisExample(result *StructNode, indent int) {
 	prefix := ""
 	for i := 0; i < indent; i++ {
 		prefix += "  "
@@ -124,27 +123,26 @@ func printStructAnalysisExample(result *StructAnalysisResult, indent int) {
 	}
 
 	for _, fieldNode := range result.Fields {
-		if structNode, ok := fieldNode.(*StructNode); ok {
+		switch fieldNode.NodeType() {
+		case NodeTypeStruct:
 			// 構造体フィールドの場合
+			structNode := fieldNode.(*StructNode)
 			fmt.Printf("%s>%s ->\n", prefix, structNode.FieldName)
-			printStructAnalysisExample(structNode.Struct, indent+1)
-		} else if interfaceNode, ok := fieldNode.(*InterfaceNode); ok {
+			printStructAnalysisExample(structNode, indent+1)
+		case NodeTypeInterface:
 			// インターフェースフィールドの場合
-			pointer := ""
-			if interfaceNode.IsPointer {
-				pointer = "*"
-			}
+			interfaceNode := fieldNode.(*InterfaceNode)
 
 			if interfaceNode.Skipped {
-				fmt.Printf("%s>%s -> %s%s -> [SKIPPED] %s\n",
-					prefix, interfaceNode.FieldName, pointer, interfaceNode.TypeName, interfaceNode.SkipReason)
+				fmt.Printf("%s>%s -> %s -> [SKIPPED] %s\n",
+					prefix, interfaceNode.FieldName, interfaceNode.TypeName, interfaceNode.SkipReason)
 			} else if interfaceNode.ResolvedStruct != nil {
-				fmt.Printf("%s>%s -> %s%s ->\n",
-					prefix, interfaceNode.FieldName, pointer, interfaceNode.TypeName)
+				fmt.Printf("%s>%s -> %s ->\n",
+					prefix, interfaceNode.FieldName, interfaceNode.TypeName)
 				printStructAnalysisExample(interfaceNode.ResolvedStruct, indent+1)
 			} else {
-				fmt.Printf("%s>%s -> %s%s\n",
-					prefix, interfaceNode.FieldName, pointer, interfaceNode.TypeName)
+				fmt.Printf("%s>%s -> %s\n",
+					prefix, interfaceNode.FieldName, interfaceNode.TypeName)
 			}
 		}
 	}
