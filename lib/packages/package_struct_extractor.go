@@ -7,21 +7,6 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-// FieldInfo は構造体のフィールド情報を保持する
-type FieldInfo struct {
-	Name        string // フィールド名
-	TypeName    string // 型名（例: "UserService", "UserRepository"）
-	PackagePath string // importに使ったパッケージパス（例: "github.com/rmocchy/convinient_wire/sample/basic/service"）
-	IsPointer   bool   // ポインタ型かどうか
-	IsInterface bool   // インターフェース型かどうか
-}
-
-// StructFieldsInfo は構造体とそのフィールド情報を保持する
-type StructFieldsInfo struct {
-	StructName string      // 構造体名
-	Fields     []FieldInfo // フィールド情報のリスト
-}
-
 // ExtractStructFields は作業ディレクトリを指定してpackagePathと構造体名から構造体のフィールド情報を取得する
 // workDir: パッケージ解決の基準となる作業ディレクトリ（空文字列の場合はカレントディレクトリ）
 // packagePath: パッケージパス（モジュールパスまたは相対パス）
