@@ -3,8 +3,8 @@ package app
 import (
 	"fmt"
 
-	file "github.com/rmocchy/convinient_wire/internal/files"
-	"github.com/rmocchy/convinient_wire/internal/packages"
+	file "github.com/rmocchy/convinient_wire/ast_analyzer/files"
+	"github.com/rmocchy/convinient_wire/ast_analyzer/packages"
 	gopkgs "golang.org/x/tools/go/packages"
 )
 
