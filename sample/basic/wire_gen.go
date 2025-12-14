@@ -16,7 +16,8 @@ import (
 
 // InitializeUserHandler は全ての依存関係を解決してUserHandlerを初期化
 func InitializeUserHandler() (*ControllerSet, error) {
-	userRepository, err := repository.NewUserRepository()
+	config := repository.NewConfig()
+	userRepository, err := repository.NewUserRepository(config)
 	if err != nil {
 		return nil, err
 	}

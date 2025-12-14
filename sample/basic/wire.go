@@ -17,6 +17,7 @@ type ControllerSet struct {
 // InitializeUserHandler は全ての依存関係を解決してUserHandlerを初期化
 func InitializeUserHandler() (*ControllerSet, error) {
 	wire.Build(
+		repository.NewConfig,
 		repository.NewUserRepository,
 		service.NewUserService,
 		handler.NewUserHandler,

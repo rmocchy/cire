@@ -14,3 +14,9 @@ type StructFieldsInfo struct {
 	StructName string      // 構造体名
 	Fields     []FieldInfo // フィールド情報のリスト
 }
+
+// FunctionInfo は関数情報を保持する
+type FunctionInfo struct {
+	Name        string // 関数名
+	PackagePath string // パッケージパス
+}

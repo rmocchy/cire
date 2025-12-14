@@ -2,6 +2,12 @@ package repository
 
 import "fmt"
 
+// Config はリポジトリの設定を表す構造体
+type Config struct {
+	DSN         string // データソース名
+	MaxPoolSize int    // 最大接続プール数
+}
+
 // User はユーザー情報を表す構造体
 type User struct {
 	ID   int
@@ -15,12 +21,22 @@ type UserRepository interface {
 
 // userRepositoryImpl はUserRepositoryの実装
 type userRepositoryImpl struct {
-	// 実際にはDBコネクションなどを持つ
+	config *Config
+}
+
+// NewConfig はConfigの新しいインスタンスを作成
+func NewConfig() *Config {
+	return &Config{
+		DSN:         "user:password@tcp(localhost:3306)/mydb",
+		MaxPoolSize: 10,
+	}
 }
 
 // NewUserRepository はUserRepositoryの新しいインスタンスを作成
-func NewUserRepository() (UserRepository, error) {
-	return &userRepositoryImpl{}, nil
+func NewUserRepository(config *Config) (UserRepository, error) {
+	return &userRepositoryImpl{
+		config: config,
+	}, nil
 }
 
 func (r *userRepositoryImpl) FindByID(id int) (*User, error) {
