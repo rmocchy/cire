@@ -32,7 +32,6 @@ func ExtractStructFields(workDir, packagePath, structName string) (*StructFields
 		return nil, fmt.Errorf("package has errors: %v", pkg.Errors)
 	}
 
-	// 構造体の型を検索
 	scope := pkg.Types.Scope()
 	obj := scope.Lookup(structName)
 	if obj == nil {
