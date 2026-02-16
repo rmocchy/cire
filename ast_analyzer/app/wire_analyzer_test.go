@@ -11,7 +11,11 @@ func TestWireAnalyzer_AnalyzeWireFile(t *testing.T) {
 	wireFilePath := "../../sample/basic/wire.go"
 	searchPattern := "./..."
 
-	analyzer := NewWireAnalyzer(workDir, searchPattern)
+	analyzer, err := NewWireAnalyzer(workDir, searchPattern)
+	if err != nil {
+		t.Fatalf("NewWireAnalyzer failed: %v", err)
+	}
+
 	results, err := analyzer.AnalyzeWireFile(wireFilePath)
 	if err != nil {
 		t.Fatalf("AnalyzeWireFile failed: %v", err)
@@ -74,13 +78,19 @@ func TestWireAnalyzer_AnalyzeStruct(t *testing.T) {
 	workDir := "../../sample/basic"
 	searchPattern := "./..."
 
-	analyzer := NewWireAnalyzer(workDir, searchPattern)
+	analyzer, err := NewWireAnalyzer(workDir, searchPattern)
+	if err != nil {
+		t.Fatalf("NewWireAnalyzer failed: %v", err)
+	}
 
 	// ControllerSetを直接解析
-	result, err := analyzer.analyzeStruct("", "ControllerSet")
+	pipeResult, err := analyzer.analyzer.AnalyzeStruct("", "ControllerSet")
 	if err != nil {
-		t.Fatalf("analyzeStruct failed: %v", err)
+		t.Fatalf("AnalyzeStruct failed: %v", err)
 	}
+
+	// pipe.StructNodeをapp.StructNodeに変換
+	result := convertPipeNodeToAppNode(pipeResult)
 
 	printStructAnalysis(t, result, 0)
 }
@@ -90,7 +100,12 @@ func ExampleWireAnalyzer_AnalyzeWireFile() {
 	wireFilePath := "../../sample/basic/wire.go"
 	searchPattern := "./..."
 
-	analyzer := NewWireAnalyzer(workDir, searchPattern)
+	analyzer, err := NewWireAnalyzer(workDir, searchPattern)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+
 	results, err := analyzer.AnalyzeWireFile(wireFilePath)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
