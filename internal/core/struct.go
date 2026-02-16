@@ -3,6 +3,8 @@ package core
 import (
 	"fmt"
 	"go/types"
+
+	"golang.org/x/tools/go/packages"
 )
 
 type StructInfo struct {
@@ -34,6 +36,38 @@ func NewStructInfo(structType *types.Struct) (*StructInfo, error) {
 		StructName: structType.String(),
 		Fields:     fields,
 	}, nil
+}
+
+func FindStruct(name string, packagePath PackagePath, pkgs []*packages.Package) (*types.Struct, bool) {
+	for _, pkg := range pkgs {
+		if pkg.PkgPath != packagePath.String() {
+			continue
+		}
+
+		obj := pkg.Types.Scope().Lookup(name)
+		if obj == nil {
+			continue
+		}
+
+		typeName, ok := obj.(*types.TypeName)
+		if !ok {
+			continue
+		}
+
+		named, ok := typeName.Type().(*types.Named)
+		if !ok {
+			continue
+		}
+
+		structType, ok := named.Underlying().(*types.Struct)
+		if !ok {
+			continue
+		}
+
+		return structType, true
+	}
+
+	return nil, false
 }
 
 // matchesStruct は型が指定された構造体と一致するかチェック

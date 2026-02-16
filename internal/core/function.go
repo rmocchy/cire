@@ -106,3 +106,31 @@ func FindFunctionsReturningInterface(targetInterface *types.Interface, pkgs []*p
 
 	return functions
 }
+
+// GetFunctionReturnType は指定された関数の返り値の型を取得する
+func GetFunctionReturnType(funcName, packagePath string, pkgs []*packages.Package) (types.Type, bool) {
+	for _, pkg := range pkgs {
+		if pkg.PkgPath != packagePath {
+			continue
+		}
+
+		obj := pkg.Types.Scope().Lookup(funcName)
+		if obj == nil {
+			continue
+		}
+
+		fn, ok := obj.(*types.Func)
+		if !ok {
+			continue
+		}
+
+		sig, ok := fn.Type().(*types.Signature)
+		if !ok || sig.Results() == nil || sig.Results().Len() == 0 {
+			continue
+		}
+
+		return sig.Results().At(0).Type(), true
+	}
+
+	return nil, false
+}

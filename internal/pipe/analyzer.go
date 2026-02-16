@@ -41,50 +41,19 @@ func NewWireAnalyzer(workDir, searchPattern string) (*WireAnalyzer, error) {
 // AnalyzeStruct は構造体を解析する（エントリーポイント）
 // packagePath: 構造体のパッケージパス（空文字列の場合は全パッケージから検索）
 // structName: 構造体名
-func (wa *WireAnalyzer) AnalyzeStruct(packagePath, structName string) (*StructNode, error) {
-	// 対象の構造体型を検索
-	for _, pkg := range wa.pkgs {
-		if packagePath != "" && pkg.PkgPath != packagePath {
-			continue
-		}
-
-		scope := pkg.Types.Scope()
-		obj := scope.Lookup(structName)
-		if obj == nil {
-			continue
-		}
-
-		typeName, ok := obj.(*types.TypeName)
-		if !ok {
-			continue
-		}
-
-		named, ok := typeName.Type().(*types.Named)
-		if !ok {
-			continue
-		}
-
-		structType, ok := named.Underlying().(*types.Struct)
-		if !ok {
-			continue
-		}
-
-		return wa.analyzeStructType(pkg.PkgPath, structName, structType)
-	}
-
-	if packagePath == "" {
+func (wa *WireAnalyzer) AnalyzeStruct(structName string, packagePath core.PackagePath) (*StructNode, error) {
+	// 対象の構造体型を検索（全パッケージから検索）
+	structType, ok := core.FindStruct(structName, packagePath, wa.pkgs)
+	if !ok {
 		return nil, fmt.Errorf("struct %s not found in any package", structName)
 	}
-	return nil, fmt.Errorf("struct %s not found in package %s", structName, packagePath)
+
+	return wa.analyzeStructType(structName, packagePath, structType)
 }
 
 // analyzeStructType は構造体型を解析する
-func (wa *WireAnalyzer) analyzeStructType(packagePath, structName string, structType *types.Struct) (*StructNode, error) {
-	// キャッシュキーを生成
-	cacheKey := packagePath + "." + structName
-	if packagePath == "" {
-		cacheKey = structName
-	}
+func (wa *WireAnalyzer) analyzeStructType(structName string, packagePath core.PackagePath, structType *types.Struct) (*StructNode, error) {
+	cacheKey := packagePath.String() + "." + structName
 
 	// 既に解析済みの場合はキャッシュから返す
 	if cached, ok := wa.analyzed[cacheKey]; ok {
@@ -93,7 +62,7 @@ func (wa *WireAnalyzer) analyzeStructType(packagePath, structName string, struct
 
 	result := &StructNode{
 		StructName:    structName,
-		PackagePath:   packagePath,
+		PackagePath:   packagePath.String(),
 		InitFunctions: make([]InitFunctionInfo, 0),
 		Fields:        make([]FieldNode, 0),
 	}
@@ -170,9 +139,11 @@ func (wa *WireAnalyzer) resolveInterface(interfaceType *types.Interface) (*Struc
 	}
 
 	fn := functions[0]
-	implType, err := wa.findFunctionReturnType(fn.Name, fn.PackagePath)
-	if err != nil {
-		return nil, fmt.Sprintf("failed to find return type: %v", err)
+
+	// 関数の返り値の型を取得
+	implType, ok := core.GetFunctionReturnType(fn.Name, fn.PackagePath, wa.pkgs)
+	if !ok {
+		return nil, fmt.Sprintf("failed to find return type for %s", fn.Name)
 	}
 
 	implType = core.Deref(implType)
@@ -187,40 +158,6 @@ func (wa *WireAnalyzer) resolveInterface(interfaceType *types.Interface) (*Struc
 	}
 
 	return resolvedStruct, ""
-}
-
-// findFunctionReturnType は関数の返り値の型を取得する
-func (wa *WireAnalyzer) findFunctionReturnType(funcName, packagePath string) (types.Type, error) {
-	for _, pkg := range wa.pkgs {
-		if pkg.PkgPath != packagePath {
-			continue
-		}
-
-		scope := pkg.Types.Scope()
-		obj := scope.Lookup(funcName)
-		if obj == nil {
-			continue
-		}
-
-		fn, ok := obj.(*types.Func)
-		if !ok {
-			continue
-		}
-
-		sig, ok := fn.Type().(*types.Signature)
-		if !ok {
-			continue
-		}
-
-		results := sig.Results()
-		if results == nil || results.Len() == 0 {
-			continue
-		}
-
-		return results.At(0).Type(), nil
-	}
-
-	return nil, fmt.Errorf("function %s not found in package %s", funcName, packagePath)
 }
 
 // isBuiltinType はビルトイン型かどうかを判定する
