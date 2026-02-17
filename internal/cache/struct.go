@@ -17,8 +17,11 @@ func NewStructCache(pkgs []*types.Package) core.StructCache {
 		scope := pkg.Scope()
 		for _, name := range scope.Names() {
 			obj := scope.Lookup(name)
-			if st, ok := obj.Type().Underlying().(*types.Struct); ok {
-				structs[pkg.Path()+"."+name] = st
+			// 型名から構造体を取得
+			if typeName, ok := obj.(*types.TypeName); ok {
+				if st, ok := typeName.Type().Underlying().(*types.Struct); ok {
+					structs[pkg.Path()+"."+name] = st
+				}
 			}
 		}
 	}

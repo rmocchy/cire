@@ -36,7 +36,9 @@ func (fc *functionCache) BulkGetByStructResult(structure *types.Struct) []*types
 		ret := fn.Signature().Results()
 		for i := 0; i < ret.Len(); i++ {
 			paramType := ret.At(i).Type()
-			if types.Identical(paramType, structure) {
+			// ポインタの場合はデリファレンス
+			derefType := core.Deref(paramType)
+			if types.Identical(derefType, structure) {
 				result = append(result, fn)
 				break
 			}
@@ -52,7 +54,14 @@ func (fc *functionCache) BulkGetByInterfaceResult(interfaceType *types.Interface
 		ret := fn.Signature().Results()
 		for i := 0; i < ret.Len(); i++ {
 			paramType := ret.At(i).Type()
+			// ポインタの場合もチェック
 			if types.Implements(paramType, interfaceType) {
+				result = append(result, fn)
+				break
+			}
+			// デリファレンスしてもチェック
+			derefType := core.Deref(paramType)
+			if types.Implements(derefType, interfaceType) {
 				result = append(result, fn)
 				break
 			}

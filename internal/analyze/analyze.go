@@ -130,7 +130,12 @@ func (wa *WireAnalyzer) analyzeNamedStructType(structName string, packagePath co
 		}
 	}
 
-	return result, nil
+	return &StructNode{
+		StructName:    structName,
+		PackagePath:   packagePath.String(),
+		InitFunctions: wa.functionCache.BulkGetByStructResult(structType),
+		Fields:        fieldNodes,
+	}, nil
 }
 
 // isBuiltinType はビルトイン型かどうかを判定する
