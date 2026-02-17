@@ -22,14 +22,14 @@ test.coverage: ## テストカバレッジを表示
 .PHONY: sample.basic
 sample.basic: ## サンプルファイルの依存関係YAMLを生成
 	@echo "=== サンプルファイルの依存関係を生成 ==="
-	./convinient_wire analyze --file ./sample/basic/cire.go \
+	./cire analyze --file ./sample/basic/cire.go \
 	--output ./sample/basic/cire.yaml
 	@echo "✓ ./sample/basic/cire.yaml を生成しました"
 
 .PHONY: sample.complex
 sample.complex: ## 複雑なサンプル（複数ルート・並列依存）のYAMLを生成
 	@echo "=== 複雑なサンプルファイルの依存関係を生成 ==="
-	./convinient_wire analyze --file ./sample/complex/cire.go \
+	./cire analyze --file ./sample/complex/cire.go \
 	--output ./sample/complex/cire.yaml
 	@echo "✓ ./sample/complex/cire.yaml を生成しました"
 
