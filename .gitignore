@@ -1,6 +1,11 @@
 poc
 
 sample/basic/cire.yaml
+sample/basic/wire.go
+sample/basic/wire_gen.go
+
 sample/complex/cire.yaml
+sample/complex/wire.go
+sample/complex/wire_gen.go
 
 cire

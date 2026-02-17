@@ -8,10 +8,10 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "convinient_wire",
-	Short: "Wire dependency analyzer - analyzes struct dependencies",
-	Long: `Convinient Wire is a CLI tool that analyzes struct dependencies in Go projects.
-It uses the internal/analyze package to build a dependency tree and outputs the result in YAML format.`,
+	Use:   "cire",
+	Short: "Cire - Convenient Wire generator",
+	Long: `Cire is a CLI tool that generates wire.go from struct dependencies in Go projects.
+It analyzes struct dependencies and generates Wire injection code automatically.`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

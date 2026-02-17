@@ -18,15 +18,20 @@ test.coverage: ## テストカバレッジを表示
 	go tool cover -html=coverage.out -o coverage.html
 	@echo "カバレッジレポートを coverage.html に生成しました"
 
+.PHONY: test.integrate
+test.integrate: ## 統合テストを実行
+	make clean.all && make build && make sample.basic && make sample.complex
+
+
 # サンプルの生成
 .PHONY: sample.basic
 sample.basic:
-	./cire analyze --file ./sample/basic/cire.go
+	./cire generate --file ./sample/basic/cire.go
 	wire ./sample/basic
 
 .PHONY: sample.complex
 sample.complex: ## 複雑なサンプル（複数ルート・並列依存）のYAMLを生成し、wireでコード生成
-	./cire analyze --file ./sample/complex/cire.go
+	./cire generate --file ./sample/complex/cire.go
 	wire ./sample/complex
 
 # クリーンアップ

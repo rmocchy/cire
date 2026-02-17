@@ -94,7 +94,7 @@ func NewUserHandler(service service.UserService) *UserHandler {
 ### 3. cire を実行
 
 ```bash
-cire analyze --file ./cire.go
+cire generate --file ./cire.go
 ```
 
 これにより `wire.go` が自動生成されます:
@@ -136,12 +136,12 @@ wire ./
 
 ## コマンド
 
-### analyze
+### generate
 
 構造体の依存関係を解析し、`wire.go` を生成します。
 
 ```bash
-cire analyze --file <ファイルパス> [--yaml]
+cire generate --file <ファイルパス> [--yaml]
 ```
 
 | フラグ | 短縮形 | 説明 |
@@ -152,10 +152,10 @@ cire analyze --file <ファイルパス> [--yaml]
 **例:**
 ```bash
 # wire.go のみ生成
-cire analyze --file ./cire.go
+cire generate --file ./cire.go
 
 # wire.go と cire.yaml を生成
-cire analyze --file ./cire.go --yaml
+cire generate --file ./cire.go --yaml
 ```
 
 ## 依存関係の解析ルール
