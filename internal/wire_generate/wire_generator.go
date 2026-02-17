@@ -30,7 +30,12 @@ type ProviderSetData struct {
 func GenerateWireFile(rootStructs []*pipe.StructNode, inputFilePath string) error {
 	dir := filepath.Dir(inputFilePath)
 	outputPath := filepath.Join(dir, "wire.go")
-	packageName := "main"
+
+	// 入力ファイルからパッケージ名を取得
+	packageName, err := extractPackageName(inputFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to extract package name: %w", err)
+	}
 
 	// インポート収集用のmap
 	importMap := make(map[string]bool)
@@ -72,4 +77,14 @@ func writeWireFile(outputPath string, data WireData) error {
 
 	fmt.Printf("Wire file generated: %s\n", outputPath)
 	return nil
+}
+
+// extractPackageName は指定されたGoファイルからパッケージ名を取得する
+func extractPackageName(filePath string) (string, error) {
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, filePath, nil, parser.PackageClauseOnly)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse file: %w", err)
+	}
+	return f.Name.Name, nil
 }
