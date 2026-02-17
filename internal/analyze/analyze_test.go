@@ -32,17 +32,9 @@ func setupTestAnalyzer(t *testing.T, workDir string) (*WireAnalyzer, error) {
 		}
 	}
 
-	// types.Packageの配列を作成
-	typesPkgs := make([]*types.Package, 0, len(pkgs))
-	for _, pkg := range pkgs {
-		if pkg.Types != nil {
-			typesPkgs = append(typesPkgs, pkg.Types)
-		}
-	}
-
 	// キャッシュを作成
 	functionCache := cache.NewFunctionCache(pkgs)
-	structCache := cache.NewStructCache(typesPkgs)
+	structCache := cache.NewStructCache(pkgs)
 
 	// WireAnalyzerを作成
 	return NewWireAnalyzer(functionCache, structCache)
