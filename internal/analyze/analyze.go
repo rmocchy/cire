@@ -15,11 +15,19 @@ type WireAnalyzer struct {
 	fieldAnalyzer FieldAnalyzer          // フィールド解析器
 }
 
+// StructAnalyzer は構造体の解析を行うインターフェース
+type StructAnalyzer interface {
+	// AnalyzeStruct は構造体を解析する（エントリーポイント）
+	AnalyzeStruct(structName string, packagePath core.PackagePath) (*StructNode, error)
+	// AnalyzeNamedStructType は名前付き構造体型を解析する
+	AnalyzeNamedStructType(structName string, packagePath core.PackagePath, structType *types.Struct) (*StructNode, error)
+}
+
 // NewWireAnalyzer は新しいWireAnalyzerを作成する
 func NewWireAnalyzer(
 	functionCache core.FunctionCache,
 	structCache core.StructCache,
-) (*WireAnalyzer, error) {
+) (StructAnalyzer, error) {
 	wa := &WireAnalyzer{
 		analyzed:      make(map[string]*StructNode),
 		functionCache: functionCache,
@@ -73,23 +81,14 @@ func (wa *WireAnalyzer) AnalyzeNamedStructType(structName string, packagePath co
 	result.Dependencies = append(result.Dependencies, deps...)
 
 	// 各フィールドを解析
-	fieldNodes := wa.analyzeFields(structType)
-	result.Fields = fieldNodes
-	return result, nil
-}
-
-// analyzeFields は構造体のフィールドを解析する
-func (wa *WireAnalyzer) analyzeFields(structType *types.Struct) []FieldNode {
-	fieldNodes := make([]FieldNode, 0, structType.NumFields())
-
 	for i := 0; i < structType.NumFields(); i++ {
 		field := structType.Field(i)
 		if node := wa.fieldAnalyzer.AnalyzeTypeToFieldNode(field.Name(), field.Type()); node != nil {
-			fieldNodes = append(fieldNodes, node)
+			result.Fields = append(result.Fields, node)
 		}
 	}
 
-	return fieldNodes
+	return result, nil
 }
 
 // analyzeDependencies は初期化関数の依存関係を解析する
