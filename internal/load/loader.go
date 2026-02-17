@@ -2,6 +2,7 @@ package load
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/rmocchy/convinient_wire/internal/cache"
@@ -59,6 +60,12 @@ func LoadPackagesFromFile(path string) (*PackageLoader, error) {
 	// ファイルのディレクトリを取得
 	dir := filepath.Dir(path)
 
+	// go.modファイルを探してモジュールルートを見つける
+	moduleRoot := findModuleRoot(dir)
+	if moduleRoot == "" {
+		moduleRoot = dir
+	}
+
 	// パッケージのロード設定
 	cfg := &packages.Config{
 		Mode: packages.NeedName |
@@ -69,7 +76,7 @@ func LoadPackagesFromFile(path string) (*PackageLoader, error) {
 			packages.NeedTypes |
 			packages.NeedSyntax |
 			packages.NeedTypesInfo,
-		Dir: dir,
+		Dir: moduleRoot, // モジュールルートを設定
 	}
 
 	// ファイルが含まれるパッケージとその依存関係をロード
@@ -90,6 +97,24 @@ func LoadPackagesFromFile(path string) (*PackageLoader, error) {
 		FunctionCache: functionCache,
 		StructCache:   structCache,
 	}, nil
+}
+
+// findModuleRoot はgo.modファイルを探してモジュールルートを返す
+func findModuleRoot(startDir string) string {
+	dir := startDir
+	for {
+		goModPath := filepath.Join(dir, "go.mod")
+		if _, err := os.Stat(goModPath); err == nil {
+			return dir
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// ルートディレクトリに到達した
+			return ""
+		}
+		dir = parent
+	}
 }
 
 // ResolvePackagePath は指定されたファイルの実際のパッケージパスを解決する

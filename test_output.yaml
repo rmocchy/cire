@@ -1,0 +1,16 @@
+struct_name: UserHandler
+package_path: github.com/rmocchy/convinient_wire/sample/basic/handler
+init_functions:
+    - name: NewUserHandler
+      package_path: github.com/rmocchy/convinient_wire/sample/basic/handler
+      signature: func(service github.com/rmocchy/convinient_wire/sample/basic/service.UserService) *github.com/rmocchy/convinient_wire/sample/basic/handler.UserHandler
+dependencies:
+    - field_name: service
+      type: UserService
+      node_type: interface
+      package_path: github.com/rmocchy/convinient_wire/sample/basic/service
+fields:
+    - field_name: service
+      type: UserService
+      node_type: interface
+      package_path: github.com/rmocchy/convinient_wire/sample/basic/service

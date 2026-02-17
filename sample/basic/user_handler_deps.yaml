@@ -1,11 +1,75 @@
-struct_name: UserHandler
-package_path: github.com/rmocchy/convinient_wire/sample/basic/handler
-init_functions:
-    - name: NewUserHandler
+root:
+    - struct_name: UserHandler
       package_path: github.com/rmocchy/convinient_wire/sample/basic/handler
-      signature: func(service github.com/rmocchy/convinient_wire/sample/basic/service.UserService) *github.com/rmocchy/convinient_wire/sample/basic/handler.UserHandler
-fields:
-    - field_name: service
-      type: UserService
-      node_type: interface
-      package_path: github.com/rmocchy/convinient_wire/sample/basic/service
+      init_functions:
+        - name: NewUserHandler
+          package_path: github.com/rmocchy/convinient_wire/sample/basic/handler
+          signature: func(service github.com/rmocchy/convinient_wire/sample/basic/service.UserService) *github.com/rmocchy/convinient_wire/sample/basic/handler.UserHandler
+      dependencies:
+        - field_name: service
+          type: UserService
+          node_type: interface
+          package_path: github.com/rmocchy/convinient_wire/sample/basic/service
+          init_functions:
+            - name: NewUserService
+              package_path: github.com/rmocchy/convinient_wire/sample/basic/service
+              signature: func(repo github.com/rmocchy/convinient_wire/sample/basic/repository.UserRepository) github.com/rmocchy/convinient_wire/sample/basic/service.UserService
+          dependencies:
+            - field_name: repo
+              type: UserRepository
+              node_type: interface
+              package_path: github.com/rmocchy/convinient_wire/sample/basic/repository
+              init_functions:
+                - name: NewUserRepository
+                  package_path: github.com/rmocchy/convinient_wire/sample/basic/repository
+                  signature: func(config *github.com/rmocchy/convinient_wire/sample/basic/repository.Config) (github.com/rmocchy/convinient_wire/sample/basic/repository.UserRepository, error)
+              dependencies:
+                - field_name: config
+                  type: Config
+                  node_type: struct
+                  package_path: github.com/rmocchy/convinient_wire/sample/basic/repository
+                  init_functions:
+                    - name: NewConfig
+                      package_path: github.com/rmocchy/convinient_wire/sample/basic/repository
+                      signature: func() *github.com/rmocchy/convinient_wire/sample/basic/repository.Config
+                  fields:
+                    - field_name: DSN
+                      type: string
+                      node_type: builtin
+                    - field_name: MaxPoolSize
+                      type: int
+                      node_type: builtin
+      fields:
+        - field_name: service
+          type: UserService
+          node_type: interface
+          package_path: github.com/rmocchy/convinient_wire/sample/basic/service
+          init_functions:
+            - name: NewUserService
+              package_path: github.com/rmocchy/convinient_wire/sample/basic/service
+              signature: func(repo github.com/rmocchy/convinient_wire/sample/basic/repository.UserRepository) github.com/rmocchy/convinient_wire/sample/basic/service.UserService
+          dependencies:
+            - field_name: repo
+              type: UserRepository
+              node_type: interface
+              package_path: github.com/rmocchy/convinient_wire/sample/basic/repository
+              init_functions:
+                - name: NewUserRepository
+                  package_path: github.com/rmocchy/convinient_wire/sample/basic/repository
+                  signature: func(config *github.com/rmocchy/convinient_wire/sample/basic/repository.Config) (github.com/rmocchy/convinient_wire/sample/basic/repository.UserRepository, error)
+              dependencies:
+                - field_name: config
+                  type: Config
+                  node_type: struct
+                  package_path: github.com/rmocchy/convinient_wire/sample/basic/repository
+                  init_functions:
+                    - name: NewConfig
+                      package_path: github.com/rmocchy/convinient_wire/sample/basic/repository
+                      signature: func() *github.com/rmocchy/convinient_wire/sample/basic/repository.Config
+                  fields:
+                    - field_name: DSN
+                      type: string
+                      node_type: builtin
+                    - field_name: MaxPoolSize
+                      type: int
+                      node_type: builtin

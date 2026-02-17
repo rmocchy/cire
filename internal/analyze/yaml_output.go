@@ -8,14 +8,20 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// YAMLRootOutput はルート出力構造体（複数の@cire構造体に対応）
+type YAMLRootOutput struct {
+	Root []YAMLOutput `yaml:"root"`
+}
+
 // YAMLOutput は構造体の依存関係をYAML形式で出力するための構造体
 type YAMLOutput struct {
-	StructName  string          `yaml:"struct_name"`
-	PackagePath string          `yaml:"package_path"`
-	Functions   []YAMLFunction  `yaml:"init_functions,omitempty"`
-	Fields      []YAMLFieldNode `yaml:"fields,omitempty"`
-	Skipped     bool            `yaml:"skipped,omitempty"`
-	SkipReason  string          `yaml:"skip_reason,omitempty"`
+	StructName   string          `yaml:"struct_name"`
+	PackagePath  string          `yaml:"package_path"`
+	Functions    []YAMLFunction  `yaml:"init_functions,omitempty"`
+	Dependencies []YAMLFieldNode `yaml:"dependencies,omitempty"`
+	Fields       []YAMLFieldNode `yaml:"fields,omitempty"`
+	Skipped      bool            `yaml:"skipped,omitempty"`
+	SkipReason   string          `yaml:"skip_reason,omitempty"`
 }
 
 // YAMLFunction は関数情報をYAML形式で出力するための構造体
@@ -27,25 +33,27 @@ type YAMLFunction struct {
 
 // YAMLFieldNode はフィールドをYAML形式で出力するための構造体
 type YAMLFieldNode struct {
-	FieldName   string          `yaml:"field_name"`
-	Type        string          `yaml:"type"`
-	NodeType    string          `yaml:"node_type"`
-	PackagePath string          `yaml:"package_path,omitempty"`
-	Functions   []YAMLFunction  `yaml:"init_functions,omitempty"`
-	Fields      []YAMLFieldNode `yaml:"fields,omitempty"`
-	Skipped     bool            `yaml:"skipped,omitempty"`
-	SkipReason  string          `yaml:"skip_reason,omitempty"`
+	FieldName    string          `yaml:"field_name"`
+	Type         string          `yaml:"type"`
+	NodeType     string          `yaml:"node_type"`
+	PackagePath  string          `yaml:"package_path,omitempty"`
+	Functions    []YAMLFunction  `yaml:"init_functions,omitempty"`
+	Dependencies []YAMLFieldNode `yaml:"dependencies,omitempty"`
+	Fields       []YAMLFieldNode `yaml:"fields,omitempty"`
+	Skipped      bool            `yaml:"skipped,omitempty"`
+	SkipReason   string          `yaml:"skip_reason,omitempty"`
 }
 
 // ToYAMLOutput はStructNodeをYAMLOutput形式に変換する
 func ToYAMLOutput(node *StructNode) YAMLOutput {
 	return YAMLOutput{
-		StructName:  node.StructName,
-		PackagePath: node.PackagePath,
-		Functions:   convertFunctions(node.InitFunctions),
-		Fields:      convertFields(node.Fields),
-		Skipped:     node.Skipped,
-		SkipReason:  node.SkipReason,
+		StructName:   node.StructName,
+		PackagePath:  node.PackagePath,
+		Functions:    convertFunctions(node.InitFunctions),
+		Fields:       convertFields(node.Fields),
+		Dependencies: convertFields(node.Dependencies),
+		Skipped:      node.Skipped,
+		SkipReason:   node.SkipReason,
 	}
 }
 
@@ -77,24 +85,26 @@ func convertFields(fields []FieldNode) []YAMLFieldNode {
 		switch f := field.(type) {
 		case *StructNode:
 			result = append(result, YAMLFieldNode{
-				FieldName:   f.FieldName,
-				Type:        f.StructName,
-				NodeType:    "struct",
-				PackagePath: f.PackagePath,
-				Functions:   convertFunctions(f.InitFunctions),
-				Fields:      convertFields(f.Fields),
-				Skipped:     f.Skipped,
-				SkipReason:  f.SkipReason,
+				FieldName:    f.FieldName,
+				Type:         f.StructName,
+				NodeType:     "struct",
+				PackagePath:  f.PackagePath,
+				Functions:    convertFunctions(f.InitFunctions),
+				Dependencies: convertFields(f.Dependencies),
+				Fields:       convertFields(f.Fields),
+				Skipped:      f.Skipped,
+				SkipReason:   f.SkipReason,
 			})
 		case *InterfaceNode:
 			result = append(result, YAMLFieldNode{
-				FieldName:   f.FieldName,
-				Type:        f.TypeName,
-				NodeType:    "interface",
-				PackagePath: f.PackagePath,
-				Functions:   convertFunctions(f.InitFunctions),
-				Skipped:     f.Skipped,
-				SkipReason:  f.SkipReason,
+				FieldName:    f.FieldName,
+				Type:         f.TypeName,
+				NodeType:     "interface",
+				PackagePath:  f.PackagePath,
+				Functions:    convertFunctions(f.InitFunctions),
+				Dependencies: convertFields(f.Dependencies),
+				Skipped:      f.Skipped,
+				SkipReason:   f.SkipReason,
 			})
 		case *BuiltinNode:
 			result = append(result, YAMLFieldNode{
@@ -110,9 +120,12 @@ func convertFields(fields []FieldNode) []YAMLFieldNode {
 // OutputToYAML は解析結果をYAML形式で出力する
 // outputFile が空文字列の場合は標準出力に出力
 func OutputToYAML(node *StructNode, outputFile string) error {
-	// YAMLに変換
+	// YAMLに変換（root配列形式）
 	yamlOutput := ToYAMLOutput(node)
-	yamlData, err := yaml.Marshal(&yamlOutput)
+	rootOutput := YAMLRootOutput{
+		Root: []YAMLOutput{yamlOutput},
+	}
+	yamlData, err := yaml.Marshal(&rootOutput)
 	if err != nil {
 		return fmt.Errorf("failed to marshal to YAML: %w", err)
 	}

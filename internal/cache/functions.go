@@ -60,13 +60,35 @@ func (fc *functionCache) BulkGetByInterfaceResult(interfaceType *types.Interface
 		ret := fn.Signature().Results()
 		for i := 0; i < ret.Len(); i++ {
 			paramType := ret.At(i).Type()
-			// ポインタの場合もチェック
+
+			// デリファレンス（ポインタを剥がす）
+			derefType := core.Deref(paramType)
+
+			// Named型の場合、Underlying()を取得してinterfaceかチェック
+			if named, ok := derefType.(*types.Named); ok {
+				underlying := named.Underlying()
+				if iface, ok := underlying.(*types.Interface); ok {
+					// interfaceが一致するかチェック
+					if types.Identical(iface, interfaceType) {
+						result = append(result, fn)
+						break
+					}
+				}
+			}
+
+			// 直接interfaceの場合もチェック
+			if iface, ok := derefType.(*types.Interface); ok {
+				if types.Identical(iface, interfaceType) {
+					result = append(result, fn)
+					break
+				}
+			}
+
+			// 実装チェック（戻り値がinterfaceを実装している型の場合）
 			if types.Implements(paramType, interfaceType) {
 				result = append(result, fn)
 				break
 			}
-			// デリファレンスしてもチェック
-			derefType := core.Deref(paramType)
 			if types.Implements(derefType, interfaceType) {
 				result = append(result, fn)
 				break

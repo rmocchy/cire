@@ -23,6 +23,7 @@ type StructNode struct {
 	StructName    string        // 構造体名
 	PackagePath   string        // パッケージパス
 	InitFunctions []*types.Func // 構造体を返す初期化関数
+	Dependencies  []FieldNode   // 依存関係のフィールドノード
 	Fields        []FieldNode   // フィールドのノード
 	Skipped       bool          // 解析がスキップされたかどうか
 	SkipReason    string        // スキップされた理由
@@ -42,6 +43,7 @@ type InterfaceNode struct {
 	TypeName      string        // インターフェース型名
 	PackagePath   string        // パッケージパス
 	InitFunctions []*types.Func // インターフェースを返す初期化関数
+	Dependencies  []FieldNode   // 依存関係のフィールドノード
 	Skipped       bool          // 解決がスキップされたか
 	SkipReason    string        // スキップされた理由
 }

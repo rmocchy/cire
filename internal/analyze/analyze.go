@@ -56,10 +56,15 @@ func (wa *WireAnalyzer) analyzeNamedStructType(structName string, packagePath co
 		PackagePath:   packagePath.String(),
 		InitFunctions: fns,
 		Fields:        make([]FieldNode, 0),
+		Dependencies:  make([]FieldNode, 0),
 	}
 
 	// キャッシュに登録（無限ループ防止のため、フィールド解析前に登録）
 	wa.analyzed[cacheKey] = result
+
+	// 初期化関数の引数を解析してDependenciesに追加
+	deps := wa.analyzeInitFunctionParams(fns)
+	result.Dependencies = append(result.Dependencies, deps...)
 
 	fieldNodes := make([]FieldNode, 0, structType.NumFields())
 	// 各フィールドを解析
@@ -89,9 +94,6 @@ func (wa *WireAnalyzer) analyzeNamedStructType(structName string, packagePath co
 		// 構造体型の場合は再帰的に解析
 		if isStruct {
 			initFuncs := wa.functionCache.BulkGetByStructResult(structField)
-			if len(initFuncs) > 0 {
-				result.InitFunctions = append(result.InitFunctions, initFuncs...)
-			}
 
 			childNode, err := wa.analyzeNamedStructType(namedField.Obj().Name(), defPkgPath, structField)
 			if err != nil {
@@ -119,23 +121,101 @@ func (wa *WireAnalyzer) analyzeNamedStructType(structName string, packagePath co
 		// インターフェース型の場合はInterfaceNodeを作成して追加
 		if isInterface {
 			initFns := wa.functionCache.BulkGetByInterfaceResult(interfaceField)
+			deps := wa.analyzeInitFunctionParams(initFns)
 
 			fieldNodes = append(fieldNodes, &InterfaceNode{
 				FieldName:     field.Name(),
 				TypeName:      namedField.Obj().Name(),
 				PackagePath:   defPkgPath.String(),
 				InitFunctions: initFns,
+				Dependencies:  deps,
 			})
 			continue
 		}
 	}
 
-	return &StructNode{
-		StructName:    structName,
-		PackagePath:   packagePath.String(),
-		InitFunctions: wa.functionCache.BulkGetByStructResult(structType),
-		Fields:        fieldNodes,
-	}, nil
+	result.Fields = fieldNodes
+	return result, nil
+}
+
+// analyzeInitFunctionParams は初期化関数の引数を解析してFieldNodeのリストを返す
+func (wa *WireAnalyzer) analyzeInitFunctionParams(fns []*types.Func) []FieldNode {
+	deps := make([]FieldNode, 0)
+
+	for _, fn := range fns {
+		sig := fn.Signature()
+		params := sig.Params()
+		if params == nil {
+			continue
+		}
+
+		for i := 0; i < params.Len(); i++ {
+			param := params.At(i)
+			paramType := core.Deref(param.Type())
+
+			// ビルトイン型の場合はBuiltinNodeを作成
+			if isBuiltinType(paramType) {
+				deps = append(deps, &BuiltinNode{
+					FieldName: param.Name(),
+					TypeName:  paramType.String(),
+				})
+				continue
+			}
+
+			// Named型でない場合はスキップ
+			namedParam, isNamed := paramType.(*types.Named)
+			if !isNamed {
+				continue
+			}
+
+			paramPkgPath := core.NewPackagePath(namedParam.Obj().Pkg().Path())
+			structParam, isStruct := namedParam.Underlying().(*types.Struct)
+			interfaceParam, isInterface := namedParam.Underlying().(*types.Interface)
+
+			// 構造体型の場合は再帰的に解析
+			if isStruct {
+				childNode, err := wa.analyzeNamedStructType(namedParam.Obj().Name(), paramPkgPath, structParam)
+				if err != nil {
+					// エラーの場合はスキップ情報を含むノードを追加
+					deps = append(deps, &StructNode{
+						FieldName:   param.Name(),
+						StructName:  namedParam.Obj().Name(),
+						PackagePath: paramPkgPath.String(),
+						Skipped:     true,
+						SkipReason:  fmt.Sprintf("failed to analyze param struct: %v", err),
+					})
+					continue
+				}
+				deps = append(deps, &StructNode{
+					FieldName:     param.Name(),
+					StructName:    namedParam.Obj().Name(),
+					PackagePath:   paramPkgPath.String(),
+					InitFunctions: childNode.InitFunctions,
+					Dependencies:  childNode.Dependencies,
+					Fields:        childNode.Fields,
+				})
+				continue
+			}
+
+			// インターフェース型の場合
+			if isInterface {
+				initFns := wa.functionCache.BulkGetByInterfaceResult(interfaceParam)
+				// インターフェースの引数も再帰的に解析
+				interfaceDeps := wa.analyzeInitFunctionParams(initFns)
+
+				deps = append(deps, &InterfaceNode{
+					FieldName:     param.Name(),
+					TypeName:      namedParam.Obj().Name(),
+					PackagePath:   paramPkgPath.String(),
+					InitFunctions: initFns,
+					Dependencies:  interfaceDeps,
+				})
+				continue
+			}
+		}
+	}
+
+	return deps
 }
 
 // isBuiltinType はビルトイン型かどうかを判定する
