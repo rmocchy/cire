@@ -6,7 +6,7 @@ func main() {
 	fmt.Println("=== Basic DI Sample with Wire ===")
 
 	// Wireが生成したInitializeUserHandler関数を使用
-	handlerSet, err := InitializeUserHandler()
+	handlerSet, err := InitializeApp()
 	if err != nil {
 		fmt.Printf("Failed to initialize UserHandler: %v\n", err)
 		return
