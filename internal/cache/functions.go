@@ -38,6 +38,12 @@ func (fc *functionCache) BulkGetByStructResult(structure *types.Struct) []*types
 			paramType := ret.At(i).Type()
 			// ポインタの場合はデリファレンス
 			derefType := core.Deref(paramType)
+
+			// Named型の場合はUnderlying()を取得
+			if named, ok := derefType.(*types.Named); ok {
+				derefType = named.Underlying()
+			}
+
 			if types.Identical(derefType, structure) {
 				result = append(result, fn)
 				break
