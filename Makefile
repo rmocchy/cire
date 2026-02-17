@@ -34,11 +34,25 @@ sample.complex: ## 複雑なサンプル（複数ルート・並列依存）のY
 	@echo "✓ ./sample/complex/cire.yaml を生成しました"
 
 # クリーンアップ
-.PHONY: clean
-clean: ## ビルド成果物をクリーンアップ
-	rm -f convinient_wire
-	rm -f coverage.out coverage.html
-	rm -f /tmp/user_handler_test.yaml
+.PHONY: clean.all clean.sample clean.build
+clean.all: ## すべてのビルド成果物をクリーンアップ
+	make clean.sample
+	make clean.build
+
+clean.sample: ## ビルド成果物をクリーンアップ
+	## basic
+	rm -f ./sample/basic/cire.yaml
+	rm -f ./sample/basic/wire.go
+	rm -f ./sample/basic/wire_gen.go
+	## complex
+	rm -f ./sample/complex/cire.yaml
+	rm -f ./sample/complex/wire.go
+	rm -f ./sample/complex/wire_gen.go
+
+clean.build: ## ビルド成果物をクリーンアップ
+	@echo "=== ビルド成果物のクリーンアップ ==="
+	rm -f cire
+	@echo "✓ ビルド成果物のクリーンアップが完了しました"
 
 # ヘルプ
 help: ## このヘルプを表示
