@@ -1,10 +1,11 @@
-package pipe
+package yaml
 
 import (
 	"fmt"
 	"go/types"
 	"os"
 
+	"github.com/rmocchy/convinient_wire/internal/analyze"
 	"gopkg.in/yaml.v3"
 )
 
@@ -44,7 +45,7 @@ type YAMLFieldNode struct {
 }
 
 // ToYAMLOutput はStructNodeをYAMLOutput形式に変換する
-func ToYAMLOutput(node *StructNode) YAMLOutput {
+func ToYAMLOutput(node *analyze.StructNode) YAMLOutput {
 	return YAMLOutput{
 		StructName:   node.StructName,
 		PackagePath:  node.PackagePath,
@@ -73,7 +74,7 @@ func convertFunctions(fns []*types.Func) []YAMLFunction {
 }
 
 // convertFields はフィールドのリストをYAMLFieldNode形式に変換する
-func convertFields(fields []FieldNode) []YAMLFieldNode {
+func convertFields(fields []analyze.FieldNode) []YAMLFieldNode {
 	if len(fields) == 0 {
 		return nil
 	}
@@ -81,7 +82,7 @@ func convertFields(fields []FieldNode) []YAMLFieldNode {
 	result := make([]YAMLFieldNode, 0, len(fields))
 	for _, field := range fields {
 		switch f := field.(type) {
-		case *StructNode:
+		case *analyze.StructNode:
 			result = append(result, YAMLFieldNode{
 				FieldName:    f.FieldName,
 				Type:         f.StructName,
@@ -93,7 +94,7 @@ func convertFields(fields []FieldNode) []YAMLFieldNode {
 				Skipped:      f.Skipped,
 				SkipReason:   f.SkipReason,
 			})
-		case *InterfaceNode:
+		case *analyze.InterfaceNode:
 			result = append(result, YAMLFieldNode{
 				FieldName:    f.FieldName,
 				Type:         f.TypeName,
@@ -104,7 +105,7 @@ func convertFields(fields []FieldNode) []YAMLFieldNode {
 				Skipped:      f.Skipped,
 				SkipReason:   f.SkipReason,
 			})
-		case *BuiltinNode:
+		case *analyze.BuiltinNode:
 			result = append(result, YAMLFieldNode{
 				FieldName: f.FieldName,
 				Type:      f.TypeName,
@@ -117,7 +118,7 @@ func convertFields(fields []FieldNode) []YAMLFieldNode {
 
 // OutputToYAML は解析結果をYAML形式で出力する
 // outputFile が空文字列の場合は標準出力に出力
-func OutputToYAML(node *StructNode, outputFile string) error {
+func OutputToYAML(node *analyze.StructNode, outputFile string) error {
 	// YAMLに変換（root配列形式）
 	yamlOutput := ToYAMLOutput(node)
 	rootOutput := YAMLRootOutput{
@@ -143,7 +144,7 @@ func OutputToYAML(node *StructNode, outputFile string) error {
 
 // OutputMultipleToYAML は複数の解析結果をYAML形式で出力する
 // outputFile が空文字列の場合は標準出力に出力
-func OutputMultipleToYAML(nodes []*StructNode, outputFile string) error {
+func OutputMultipleToYAML(nodes []*analyze.StructNode, outputFile string) error {
 	if len(nodes) == 0 {
 		return fmt.Errorf("no nodes to output")
 	}

@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/rmocchy/convinient_wire/internal/analyze"
 	pipe "github.com/rmocchy/convinient_wire/internal/analyze"
 	"github.com/rmocchy/convinient_wire/internal/load"
 	wiregenerate "github.com/rmocchy/convinient_wire/internal/wire_generate"
+	"github.com/rmocchy/convinient_wire/internal/yaml"
 	"github.com/spf13/cobra"
 )
 
@@ -16,13 +18,13 @@ var (
 )
 
 var analyzeCmd = &cobra.Command{
-	Use:   "analyze",
+	Use:   "gen",
 	Short: "Analyze struct dependencies and output to YAML",
 	Long: `Analyze structs defined in a file with //go:build cire tag and output the dependency tree in YAML format.
 The target file must have the build tag "//go:build cire" and contain struct definitions.`,
 	Example: `  convinient_wire analyze --file ./cire_structs.go --yaml
   convinient_wire analyze -f ./cire_structs.go -y`,
-	RunE: runAnalyze,
+	RunE: runGen,
 }
 
 func init() {
@@ -34,7 +36,7 @@ func init() {
 	analyzeCmd.MarkFlagRequired("file")
 }
 
-func runAnalyze(cmd *cobra.Command, args []string) error {
+func runGen(cmd *cobra.Command, args []string) error {
 	targetStructs, err := load.FindAnnotatedStructs(filePath)
 	if err != nil {
 		return err
@@ -53,7 +55,7 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	}
 
 	// 各アノテーション付き構造体を解析
-	results := make([]*pipe.StructNode, 0, len(targetStructs))
+	results := make([]*analyze.StructNode, 0, len(targetStructs))
 	for _, structName := range targetStructs {
 		// アナライザの作成
 		analyzer, err := pipe.NewWireAnalyzer(loader.FunctionCache, loader.StructCache)
@@ -76,7 +78,7 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 		dir := filepath.Dir(filePath)
 		outputPath := filepath.Join(dir, "cire.yaml")
 
-		if err := pipe.OutputMultipleToYAML(results, outputPath); err != nil {
+		if err := yaml.OutputMultipleToYAML(results, outputPath); err != nil {
 			return err
 		}
 
