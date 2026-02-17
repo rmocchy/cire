@@ -1,0 +1,26 @@
+//go:build wireinject
+// +build wireinject
+
+package {{.PackageName}}
+
+import (
+	"github.com/google/wire"
+{{- range .Imports}}
+	"{{.}}"
+{{- end}}
+)
+
+{{range .ProviderSets}}
+// {{.StructName}}Set is the Wire provider set for {{.StructName}}
+var {{.StructName}}Set = wire.NewSet(
+{{- range .Providers}}
+	{{.}},
+{{- end}}
+)
+
+// Initialize{{.StructName}} initializes {{.StructName}} with all dependencies
+func Initialize{{.StructName}}() (*{{.StructName}}, error) {
+	wire.Build({{.StructName}}Set)
+	return nil, nil
+}
+{{end}}

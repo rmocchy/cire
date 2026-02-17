@@ -6,6 +6,7 @@ import (
 
 	pipe "github.com/rmocchy/convinient_wire/internal/analyze"
 	"github.com/rmocchy/convinient_wire/internal/load"
+	wiregenerate "github.com/rmocchy/convinient_wire/internal/wire_generate"
 	"github.com/spf13/cobra"
 )
 
@@ -81,6 +82,11 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 		}
 
 		fmt.Printf("YAML file generated: %s\n", outputPath)
+	}
+
+	// wire.go ファイルの生成
+	if err := wiregenerate.GenerateWireFile(results, filePath); err != nil {
+		return fmt.Errorf("failed to generate wire.go: %w", err)
 	}
 
 	return nil
