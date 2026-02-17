@@ -6,7 +6,6 @@ import (
 	"github.com/rmocchy/convinient_wire/sample/basic/service"
 )
 
-// @cire
 // UserHandler はユーザーハンドラー
 type UserHandler struct {
 	service service.UserService

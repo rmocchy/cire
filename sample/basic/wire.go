@@ -10,6 +10,7 @@ import (
 	"github.com/rmocchy/convinient_wire/sample/basic/service"
 )
 
+// @cire
 type ControllerSet struct {
 	handler *handler.UserHandler
 }

@@ -1,0 +1,68 @@
+root:
+    - struct_name: OrderAppSet
+      package_path: github.com/rmocchy/convinient_wire/sample/complex
+      init_functions:
+        - name: InitializeOrderApp
+          package_path: github.com/rmocchy/convinient_wire/sample/complex
+          signature: func() (*github.com/rmocchy/convinient_wire/sample/complex.OrderAppSet, error)
+      fields:
+        - field_name: ProductHandler
+          type: ProductHandler
+          node_type: struct
+          package_path: github.com/rmocchy/convinient_wire/sample/complex/handler
+          init_functions:
+            - name: NewProductHandler
+              package_path: github.com/rmocchy/convinient_wire/sample/complex/handler
+              signature: func(service github.com/rmocchy/convinient_wire/sample/complex/service.ProductService) *github.com/rmocchy/convinient_wire/sample/complex/handler.ProductHandler
+          fields:
+            - field_name: service
+              type: ProductService
+              node_type: interface
+              package_path: github.com/rmocchy/convinient_wire/sample/complex/service
+              init_functions:
+                - name: NewProductService
+                  package_path: github.com/rmocchy/convinient_wire/sample/complex/service
+                  signature: func(repo github.com/rmocchy/convinient_wire/sample/complex/repository.ProductRepository) github.com/rmocchy/convinient_wire/sample/complex/service.ProductService
+              dependencies:
+                - field_name: repo
+                  type: ProductRepository
+                  node_type: interface
+                  package_path: github.com/rmocchy/convinient_wire/sample/complex/repository
+                  init_functions:
+                    - name: NewProductRepository
+                      package_path: github.com/rmocchy/convinient_wire/sample/complex/repository
+                      signature: func() github.com/rmocchy/convinient_wire/sample/complex/repository.ProductRepository
+        - field_name: OrderHandler
+          type: OrderHandler
+          node_type: struct
+          package_path: github.com/rmocchy/convinient_wire/sample/complex/handler
+          init_functions:
+            - name: NewOrderHandler
+              package_path: github.com/rmocchy/convinient_wire/sample/complex/handler
+              signature: func(service github.com/rmocchy/convinient_wire/sample/complex/service.OrderService) *github.com/rmocchy/convinient_wire/sample/complex/handler.OrderHandler
+          fields:
+            - field_name: service
+              type: OrderService
+              node_type: interface
+              package_path: github.com/rmocchy/convinient_wire/sample/complex/service
+              init_functions:
+                - name: NewOrderService
+                  package_path: github.com/rmocchy/convinient_wire/sample/complex/service
+                  signature: func(userRepo github.com/rmocchy/convinient_wire/sample/complex/repository.UserRepository, productRepo github.com/rmocchy/convinient_wire/sample/complex/repository.ProductRepository) github.com/rmocchy/convinient_wire/sample/complex/service.OrderService
+              dependencies:
+                - field_name: userRepo
+                  type: UserRepository
+                  node_type: interface
+                  package_path: github.com/rmocchy/convinient_wire/sample/complex/repository
+                  init_functions:
+                    - name: NewUserRepository
+                      package_path: github.com/rmocchy/convinient_wire/sample/complex/repository
+                      signature: func() github.com/rmocchy/convinient_wire/sample/complex/repository.UserRepository
+                - field_name: productRepo
+                  type: ProductRepository
+                  node_type: interface
+                  package_path: github.com/rmocchy/convinient_wire/sample/complex/repository
+                  init_functions:
+                    - name: NewProductRepository
+                      package_path: github.com/rmocchy/convinient_wire/sample/complex/repository
+                      signature: func() github.com/rmocchy/convinient_wire/sample/complex/repository.ProductRepository
