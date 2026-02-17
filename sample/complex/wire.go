@@ -10,13 +10,11 @@ import (
 	"github.com/rmocchy/convinient_wire/sample/complex/service"
 )
 
-// @cire
 // UserAppSet はUserHandlerを持つルート構造体
 type UserAppSet struct {
 	UserHandler *handler.UserHandler
 }
 
-// @cire
 // OrderAppSet はProductHandlerとOrderHandlerを持つルート構造体（並列依存の例）
 type OrderAppSet struct {
 	ProductHandler *handler.ProductHandler

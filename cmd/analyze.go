@@ -16,24 +16,24 @@ var (
 var analyzeCmd = &cobra.Command{
 	Use:   "analyze",
 	Short: "Analyze struct dependencies and output to YAML",
-	Long: `Analyze structs with @cire annotation and output the dependency tree in YAML format.
-The target struct must have a comment with @cire annotation.`,
-	Example: `  convinient_wire analyze --file ./handler/user_handler.go --output dependencies.yaml
-  convinient_wire analyze -f ./service/user_service.go`,
+	Long: `Analyze structs defined in a file with //go:build cire tag and output the dependency tree in YAML format.
+The target file must have the build tag "//go:build cire" and contain struct definitions.`,
+	Example: `  convinient_wire analyze --file ./cire_structs.go --output dependencies.yaml
+  convinient_wire analyze -f ./cire_structs.go`,
 	RunE: runAnalyze,
 }
 
 func init() {
 	rootCmd.AddCommand(analyzeCmd)
 
-	analyzeCmd.Flags().StringVarP(&filePath, "file", "f", "", "Go file path containing the struct with @cire annotation (required)")
+	analyzeCmd.Flags().StringVarP(&filePath, "file", "f", "", "Go file path with //go:build cire tag containing struct definitions (required)")
 	analyzeCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Output file path (default: stdout)")
 
 	analyzeCmd.MarkFlagRequired("file")
 }
 
 func runAnalyze(cmd *cobra.Command, args []string) error {
-	// ファイルからアノテーション付き構造体を検出
+	// ファイルから構造体を検出（//go:build cire タグ付きファイル内のすべての構造体）
 	targetStructs, err := load.FindAnnotatedStructs(filePath)
 	if err != nil {
 		return err

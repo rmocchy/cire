@@ -10,7 +10,7 @@ import (
 	"github.com/rmocchy/convinient_wire/sample/basic/service"
 )
 
-// @cire
+// ControllerSet は依存関係の解析対象となるルート構造体
 type ControllerSet struct {
 	handler *handler.UserHandler
 }

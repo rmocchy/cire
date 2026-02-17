@@ -8,12 +8,18 @@ import (
 	"strings"
 )
 
-// FindAnnotatedStructs は指定されたファイルから @cire アノテーション付きの構造体を検出する
+// FindAnnotatedStructs は指定されたファイルからすべての構造体を検出する
+// ファイルは //go:build cire ビルドタグを持つ専用ファイルであることを想定
 func FindAnnotatedStructs(filePath string) ([]string, error) {
 	fset := token.NewFileSet()
 	node, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse file: %w", err)
+	}
+
+	// ビルドタグの確認
+	if !hasCireBuildTag(node) {
+		return nil, fmt.Errorf("file %s does not have '//go:build cire' build tag", filePath)
 	}
 
 	results := make([]string, 0)
@@ -35,30 +41,32 @@ func FindAnnotatedStructs(filePath string) ([]string, error) {
 				continue
 			}
 
-			// @cire アノテーションがあれば追加（typeSpec.Doc または genDecl.Doc）
-			if hasAnnotation(typeSpec.Doc, "@cire") || hasAnnotation(genDecl.Doc, "@cire") {
-				results = append(results, typeSpec.Name.Name)
-			}
+			// すべての構造体を追加
+			results = append(results, typeSpec.Name.Name)
 		}
 
 		return true
 	})
 
 	if len(results) == 0 {
-		return nil, fmt.Errorf("no structs with @cire annotation found in %s", filePath)
+		return nil, fmt.Errorf("no structs found in %s", filePath)
 	}
 
 	return results, nil
 }
 
-// hasAnnotation はコメントに指定されたアノテーションが含まれるかをチェックする
-func hasAnnotation(doc *ast.CommentGroup, annotation string) bool {
-	if doc == nil {
-		return false
-	}
-	for _, comment := range doc.List {
-		if strings.Contains(comment.Text, annotation) {
-			return true
+// hasCireBuildTag はファイルに //go:build cire ビルドタグがあるかをチェックする
+func hasCireBuildTag(node *ast.File) bool {
+	for _, commentGroup := range node.Comments {
+		for _, comment := range commentGroup.List {
+			text := comment.Text
+			// //go:build cire または // +build cire を探す
+			if strings.Contains(text, "go:build") && strings.Contains(text, "cire") {
+				return true
+			}
+			if strings.Contains(text, "+build") && strings.Contains(text, "cire") {
+				return true
+			}
 		}
 	}
 	return false

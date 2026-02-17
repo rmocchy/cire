@@ -2,10 +2,16 @@
 
 このサンプルは、より複雑な依存関係のパターンを示しています。
 
+## ファイル構成
+
+- `cire_structs.go`: 依存関係解析対象の構造体定義（`//go:build cire` タグ付き）
+- `wire.go`: Google Wireの設定ファイル
+- `wire_gen.go`: Wireによって自動生成されるファイル
+
 ## 特徴
 
-### 1. 複数の@cire構造体
-2つの独立したルート構造体があります：
+### 1. 複数のルート構造体
+`cire_structs.go` 内に2つの独立したルート構造体があります：
 - `UserAppSet`: UserHandlerのみ
 - `OrderAppSet`: ProductHandlerとOrderHandler
 
@@ -34,3 +40,5 @@ OrderAppSet
 ```bash
 make sample.complex
 ```
+
+これにより `cire_structs.go` 内のすべての構造体（`UserAppSet` と `OrderAppSet`）の依存関係が `cire.yaml` に出力されます。
