@@ -40,7 +40,8 @@ func NewStructInfo(structType *types.Struct) (*StructInfo, error) {
 
 func FindStruct(name string, packagePath PackagePath, pkgs []*packages.Package) (*types.Struct, bool) {
 	for _, pkg := range pkgs {
-		if pkg.PkgPath != packagePath.String() {
+		// パッケージパスが空でない場合はフィルタリング
+		if packagePath.String() != "" && pkg.PkgPath != packagePath.String() {
 			continue
 		}
 

@@ -53,3 +53,39 @@ func Deref(t types.Type) types.Type {
 	}
 	return t
 }
+
+// func convertTupleToList1(tuple *types.Tuple, deref bool) []*types.Type {
+// 	if tuple == nil {
+// 		return nil
+// 	}
+
+// 	var list []*types.Type
+// 	for i := 0; i < tuple.Len(); i++ {
+// 		t := tuple.At(i).Type()
+// 		if deref {
+// 			t = Deref(t)
+// 		}
+// 		list = append(list, t)
+// 	}
+// 	return list
+// }
+
+func convertTupleToList[T any](tuple *types.Tuple, deref bool, filterType T) []*T {
+	if tuple == nil {
+		return nil
+	}
+
+	res := make([]*T, 0)
+	for i := 0; i < tuple.Len(); i++ {
+		t := tuple.At(i).Type()
+		if deref {
+			t = Deref(t)
+		}
+
+		if typed, ok := t.(T); ok {
+			res = append(res, &typed)
+		}
+	}
+
+	return res
+}

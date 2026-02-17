@@ -1,199 +1,117 @@
 package core
 
-import (
-	"go/types"
-	"testing"
+// func TestFindStructsReturnedByFunction(t *testing.T) {
+// 	// sample/basic パッケージを読み込む
+// 	cfg := &packages.Config{
+// 		Mode: packages.NeedTypes |
+// 			packages.NeedSyntax |
+// 			packages.NeedTypesInfo |
+// 			packages.NeedName |
+// 			packages.NeedImports,
+// 		Dir: "../../sample/basic/repository",
+// 	}
 
-	"golang.org/x/tools/go/packages"
-)
+// 	pkgs, err := packages.Load(cfg, ".")
+// 	if err != nil {
+// 		t.Fatalf("パッケージの読み込みに失敗しました: %v", err)
+// 	}
 
-func TestFindFunctionsReturningStruct(t *testing.T) {
-	// テスト用のパッケージを作成
-	pkg := types.NewPackage("test/pkg", "pkg")
-	scope := pkg.Scope()
+// 	if len(pkgs) == 0 {
+// 		t.Fatal("パッケージが見つかりませんでした")
+// 	}
 
-	// テスト用の構造体型を作成
-	targetFields := []*types.Var{
-		types.NewField(0, pkg, "TargetField", types.Typ[types.String], false),
-	}
-	targetStructType := types.NewStruct(targetFields, nil)
-	targetNamed := types.NewNamed(types.NewTypeName(0, pkg, "TargetStruct", nil), targetStructType, nil)
+// 	if packages.PrintErrors(pkgs) > 0 {
+// 		t.Fatal("パッケージにエラーがあります")
+// 	}
 
-	// 別の構造体型を作成
-	otherFields := []*types.Var{
-		types.NewField(0, pkg, "OtherField", types.Typ[types.Int], false),
-	}
-	otherStructType := types.NewStruct(otherFields, nil)
-	otherNamed := types.NewNamed(types.NewTypeName(0, pkg, "OtherStruct", nil), otherStructType, nil)
+// 	pkg := pkgs[0]
 
-	// TargetStructを返す関数を作成
-	funcReturnsTarget := types.NewFunc(0, pkg, "GetTargetStruct", types.NewSignatureType(
-		nil, nil, nil,
-		nil,
-		types.NewTuple(types.NewVar(0, pkg, "", targetNamed)),
-		false,
-	))
-	scope.Insert(funcReturnsTarget)
+// 	t.Run("NewConfig関数は*Configを返す", func(t *testing.T) {
+// 		// NewConfig 関数を取得
+// 		obj := pkg.Types.Scope().Lookup("NewConfig")
+// 		if obj == nil {
+// 			t.Fatal("NewConfig関数が見つかりませんでした")
+// 		}
 
-	// TargetStructのポインタを返す関数を作成
-	funcReturnsPtrTarget := types.NewFunc(0, pkg, "GetTargetStructPtr", types.NewSignatureType(
-		nil, nil, nil,
-		nil,
-		types.NewTuple(types.NewVar(0, pkg, "", types.NewPointer(targetNamed))),
-		false,
-	))
-	scope.Insert(funcReturnsPtrTarget)
+// 		fn, ok := obj.(*types.Func)
+// 		if !ok {
+// 			t.Fatal("NewConfigが関数ではありません")
+// 		}
 
-	// OtherStructを返す関数を作成
-	funcReturnsOther := types.NewFunc(0, pkg, "GetOtherStruct", types.NewSignatureType(
-		nil, nil, nil,
-		nil,
-		types.NewTuple(types.NewVar(0, pkg, "", otherNamed)),
-		false,
-	))
-	scope.Insert(funcReturnsOther)
+// 		// return 文から実際に返される型を取得
+// 		returnTypes := FindStructsReturnedByFunction(pkg, fn)
 
-	// 返り値がない関数を作成
-	funcNoReturn := types.NewFunc(0, pkg, "NoReturn", types.NewSignatureType(
-		nil, nil, nil,
-		nil,
-		nil,
-		false,
-	))
-	scope.Insert(funcNoReturn)
+// 		if len(returnTypes) == 0 {
+// 			t.Fatal("返り値の型が取得できませんでした")
+// 		}
 
-	// packages.Packageを作成
-	testPkg := &packages.Package{
-		PkgPath: "test/pkg",
-		Types:   pkg,
-	}
-	pkgs := []*packages.Package{testPkg}
+// 		// *Config 型が返されることを確認
+// 		firstType := returnTypes[0]
+// 		ptrType, ok := firstType.(*types.Pointer)
+// 		if !ok {
+// 			t.Fatalf("ポインタ型ではありません: %v", firstType)
+// 		}
 
-	t.Run("指定された構造体を返す関数を見つける", func(t *testing.T) {
-		functions := FindFunctionsReturningStruct(targetStructType, pkgs)
+// 		namedType, ok := ptrType.Elem().(*types.Named)
+// 		if !ok {
+// 			t.Fatalf("Named型ではありません: %v", ptrType.Elem())
+// 		}
 
-		if len(functions) != 2 {
-			t.Fatalf("見つかった関数の数が期待値と異なります。期待: 2, 実際: %d", len(functions))
-		}
+// 		if namedType.Obj().Name() != "Config" {
+// 			t.Errorf("型名が期待値と異なります。期待: Config, 実際: %s", namedType.Obj().Name())
+// 		}
+// 	})
 
-		foundNames := make(map[string]bool)
-		for _, fn := range functions {
-			foundNames[fn.Name] = true
-		}
+// 	t.Run("NewUserRepository関数はUserRepositoryインターフェースを返す(シグネチャ上)", func(t *testing.T) {
+// 		// NewUserRepository 関数を取得
+// 		obj := pkg.Types.Scope().Lookup("NewUserRepository")
+// 		if obj == nil {
+// 			t.Fatal("NewUserRepository関数が見つかりませんでした")
+// 		}
 
-		if !foundNames["GetTargetStruct"] {
-			t.Error("GetTargetStructが見つかりませんでした")
-		}
-		if !foundNames["GetTargetStructPtr"] {
-			t.Error("GetTargetStructPtrが見つかりませんでした")
-		}
-	})
+// 		fn, ok := obj.(*types.Func)
+// 		if !ok {
+// 			t.Fatal("NewUserRepositoryが関数ではありません")
+// 		}
 
-	t.Run("nilを渡した場合", func(t *testing.T) {
-		functions := FindFunctionsReturningStruct(nil, pkgs)
+// 		// return 文から実際に返される型を取得
+// 		returnTypes := FindStructsReturnedByFunction(pkg, fn)
 
-		if functions != nil {
-			t.Error("nilを渡した場合はnilが返されるべきです")
-		}
-	})
+// 		if len(returnTypes) == 0 {
+// 			t.Fatal("返り値の型が取得できませんでした")
+// 		}
 
-	t.Run("空のパッケージリストの場合", func(t *testing.T) {
-		functions := FindFunctionsReturningStruct(targetStructType, []*packages.Package{})
+// 		// 実際には *userRepositoryImpl が返される
+// 		firstType := returnTypes[0]
 
-		if len(functions) != 0 {
-			t.Errorf("空のパッケージリストの場合は空のスライスが返されるべきです。実際: %d", len(functions))
-		}
-	})
-}
+// 		// ポインタ型を確認
+// 		ptrType, ok := firstType.(*types.Pointer)
+// 		if !ok {
+// 			t.Logf("返り値の型: %v (%T)", firstType, firstType)
+// 			// インターフェース型の場合もあるのでエラーにしない
+// 			return
+// 		}
 
-func TestFindFunctionsReturningInterface(t *testing.T) {
-	// テスト用のパッケージを作成
-	pkg := types.NewPackage("test/pkg", "pkg")
-	scope := pkg.Scope()
+// 		namedType, ok := ptrType.Elem().(*types.Named)
+// 		if !ok {
+// 			t.Fatalf("Named型ではありません: %v", ptrType.Elem())
+// 		}
 
-	// テスト用のインターフェース型を作成
-	methods := []*types.Func{
-		types.NewFunc(0, pkg, "DoSomething", types.NewSignatureType(nil, nil, nil, nil, nil, false)),
-	}
-	targetIfaceType := types.NewInterfaceType(methods, nil)
-	targetIfaceType.Complete()
-	targetNamed := types.NewNamed(types.NewTypeName(0, pkg, "TargetInterface", nil), targetIfaceType, nil)
+// 		if namedType.Obj().Name() != "userRepositoryImpl" {
+// 			t.Errorf("型名が期待値と異なります。期待: userRepositoryImpl, 実際: %s", namedType.Obj().Name())
+// 		}
+// 	})
 
-	// 別のインターフェース型を作成
-	otherMethods := []*types.Func{
-		types.NewFunc(0, pkg, "DoOther", types.NewSignatureType(nil, nil, nil, nil, nil, false)),
-	}
-	otherIfaceType := types.NewInterfaceType(otherMethods, nil)
-	otherIfaceType.Complete()
-	otherNamed := types.NewNamed(types.NewTypeName(0, pkg, "OtherInterface", nil), otherIfaceType, nil)
+// 	t.Run("存在しない関数を渡した場合は空のスライスを返す", func(t *testing.T) {
+// 		// ダミーの関数を作成
+// 		dummyPkg := types.NewPackage("test/dummy", "dummy")
+// 		sig := types.NewSignature(nil, nil, nil, false)
+// 		dummyFn := types.NewFunc(0, dummyPkg, "DummyFunc", sig)
 
-	// TargetInterfaceを返す関数を作成
-	funcReturnsTarget := types.NewFunc(0, pkg, "GetTargetInterface", types.NewSignatureType(
-		nil, nil, nil,
-		nil,
-		types.NewTuple(types.NewVar(0, pkg, "", targetNamed)),
-		false,
-	))
-	scope.Insert(funcReturnsTarget)
+// 		returnTypes := FindStructsReturnedByFunction(pkg, dummyFn)
 
-	// TargetInterfaceのポインタを返す関数を作成
-	funcReturnsPtrTarget := types.NewFunc(0, pkg, "GetTargetInterfacePtr", types.NewSignatureType(
-		nil, nil, nil,
-		nil,
-		types.NewTuple(types.NewVar(0, pkg, "", types.NewPointer(targetNamed))),
-		false,
-	))
-	scope.Insert(funcReturnsPtrTarget)
-
-	// OtherInterfaceを返す関数を作成
-	funcReturnsOther := types.NewFunc(0, pkg, "GetOtherInterface", types.NewSignatureType(
-		nil, nil, nil,
-		nil,
-		types.NewTuple(types.NewVar(0, pkg, "", otherNamed)),
-		false,
-	))
-	scope.Insert(funcReturnsOther)
-
-	// packages.Packageを作成
-	testPkg := &packages.Package{
-		PkgPath: "test/pkg",
-		Types:   pkg,
-	}
-	pkgs := []*packages.Package{testPkg}
-
-	t.Run("指定されたインターフェースを返す関数を見つける", func(t *testing.T) {
-		functions := FindFunctionsReturningInterface(targetIfaceType, pkgs)
-
-		if len(functions) != 2 {
-			t.Fatalf("見つかった関数の数が期待値と異なります。期待: 2, 実際: %d", len(functions))
-		}
-
-		foundNames := make(map[string]bool)
-		for _, fn := range functions {
-			foundNames[fn.Name] = true
-		}
-
-		if !foundNames["GetTargetInterface"] {
-			t.Error("GetTargetInterfaceが見つかりませんでした")
-		}
-		if !foundNames["GetTargetInterfacePtr"] {
-			t.Error("GetTargetInterfacePtrが見つかりませんでした")
-		}
-	})
-
-	t.Run("nilを渡した場合", func(t *testing.T) {
-		functions := FindFunctionsReturningInterface(nil, pkgs)
-
-		if functions != nil {
-			t.Error("nilを渡した場合はnilが返されるべきです")
-		}
-	})
-
-	t.Run("空のパッケージリストの場合", func(t *testing.T) {
-		functions := FindFunctionsReturningInterface(targetIfaceType, []*packages.Package{})
-
-		if len(functions) != 0 {
-			t.Errorf("空のパッケージリストの場合は空のスライスが返されるべきです。実際: %d", len(functions))
-		}
-	})
-}
+// 		if len(returnTypes) != 0 {
+// 			t.Errorf("空のスライスが期待されますが、長さが %d です", len(returnTypes))
+// 		}
+// 	})
+// }

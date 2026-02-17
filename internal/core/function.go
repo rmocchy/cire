@@ -1,136 +1,101 @@
 package core
 
-import (
-	"go/types"
+// 作ろうと思ったが複雑化するのでv1ではやめる
 
-	"golang.org/x/tools/go/packages"
-)
+// type retType struct {
+// 	Type types.Type
+// 	IsInterface bool
+// 	IsPointer bool
+// }
 
-type FunctionInfo struct {
-	Name        string
-	PackagePath string
-}
+// // FindStructsReturnedByFunction は指定された関数の return 文から実際に返される構造体の型を取得する
+// // 関数の返り値がインターフェースの場合、そのインターフェースを実装している型のみを返す
+// func FindStructsReturnedByFunction(pkg *packages.Package, fn *types.Func) [][]types.Type {
+// 	rets := fn.Signature().Results()
+// 	if rets == nil {
+// 		return nil
+// 	}
 
-// FindFunctionsReturningStruct は指定された構造体を返り値に持つ関数を探す
-func FindFunctionsReturningStruct(targetStruct *types.Struct, pkgs []*packages.Package) []FunctionInfo {
-	if targetStruct == nil {
-		return nil
-	}
+// 	// 返り値の型をインデックスごとに保存
+// 	declaredTypes := make([]types.Type, 0, rets.Len())
 
-	functions := make([]FunctionInfo, 0)
+// 	for i := 0; i < rets.Len(); i++ {
+// 		t := rets.At(i).Type()
+// 		declaredTypes[i] = t
 
-	for _, pkg := range pkgs {
-		scope := pkg.Types.Scope()
-		for _, name := range scope.Names() {
-			obj := scope.Lookup(name)
+// 		if _, ok := t.Underlying().(*types.Interface); ok {
+// 	}
 
-			// 関数かどうかをチェック
-			fn, ok := obj.(*types.Func)
-			if !ok {
-				continue
-			}
+// 	result := make([]types.Type, 0)
 
-			// 関数のシグネチャを取得
-			sig, ok := fn.Type().(*types.Signature)
-			if !ok {
-				continue
-			}
+// 	// 関数のシグネチャから返り値の型を取得
+// 	sig := fn.Signature()
+// 	results := sig.Results()
+// 	if results == nil {
+// 		return result
+// 	}
 
-			// 返り値をチェック
-			results := sig.Results()
-			if results == nil {
-				continue
-			}
+// 	// 返り値の型をインデックスごとに保存
+// 	declaredTypes := make([]types.Type, results.Len())
+// 	for i := 0; i < results.Len(); i++ {
+// 		declaredTypes[i] = results.At(i).Type()
+// 	}
 
-			// 各返り値が指定された構造体かどうかをチェック
-			for i := 0; i < results.Len(); i++ {
-				result := results.At(i)
-				if matchesStruct(result.Type(), targetStruct) {
-					functions = append(functions, FunctionInfo{
-						Name:        fn.Name(),
-						PackagePath: pkg.PkgPath,
-					})
-					break // 同じ関数を複数回追加しないように
-				}
-			}
-		}
-	}
+// 	// パッケージの AST を走査
+// 	for _, file := range pkg.Syntax {
+// 		ast.Inspect(file, func(n ast.Node) bool {
+// 			// 関数宣言を探す
+// 			funcDecl, ok := n.(*ast.FuncDecl)
+// 			if !ok {
+// 				return true
+// 			}
 
-	return functions
-}
+// 			// 対象の関数か確認
+// 			funcObj := pkg.TypesInfo.Defs[funcDecl.Name]
+// 			if funcObj != fn {
+// 				return true
+// 			}
+// 			if funcDecl.Body == nil {
+// 				return true
+// 			}
 
-// FindFunctionsReturningInterface は指定されたinterfaceを返り値に持つ関数を探す
-func FindFunctionsReturningInterface(targetInterface *types.Interface, pkgs []*packages.Package) []FunctionInfo {
-	if targetInterface == nil {
-		return nil
-	}
+// 			// return 文を探す
+// 			ast.Inspect(funcDecl.Body, func(n ast.Node) bool {
+// 				retStmt, ok := n.(*ast.ReturnStmt)
+// 				if !ok {
+// 					return true
+// 				}
 
-	functions := make([]FunctionInfo, 0)
+// 				// 各 return 式の型を取得
+// 				for i, expr := range retStmt.Results {
+// 					// TypeOf で式の型を解決
+// 					exprType := pkg.TypesInfo.TypeOf(expr)
+// 					if exprType == nil {
+// 						continue
+// 					}
 
-	for _, pkg := range pkgs {
-		scope := pkg.Types.Scope()
-		for _, name := range scope.Names() {
-			obj := scope.Lookup(name)
+// 					// 宣言された型がインターフェースの場合、実装チェック
+// 					if i < len(declaredTypes) {
+// 						if ifaceType, ok := declaredTypes[i].Underlying().(*types.Interface); ok {
+// 							// インターフェースを実装しているかチェック
+// 							if types.Implements(exprType, ifaceType) {
+// 								result = append(result, exprType)
+// 							}
+// 						} else {
+// 							// インターフェースでない場合はそのまま追加
+// 							result = append(result, exprType)
+// 						}
+// 					} else {
+// 						result = append(result, exprType)
+// 					}
+// 				}
 
-			// 関数かどうかをチェック
-			fn, ok := obj.(*types.Func)
-			if !ok {
-				continue
-			}
+// 				return true
+// 			})
 
-			// 関数のシグネチャを取得
-			sig, ok := fn.Type().(*types.Signature)
-			if !ok {
-				continue
-			}
+// 			return false
+// 		})
+// 	}
 
-			// 返り値をチェック
-			results := sig.Results()
-			if results == nil {
-				continue
-			}
-
-			// 各返り値が指定されたinterfaceかどうかをチェック
-			for i := 0; i < results.Len(); i++ {
-				result := results.At(i)
-				if matchesInterface(result.Type(), targetInterface) {
-					functions = append(functions, FunctionInfo{
-						Name:        fn.Name(),
-						PackagePath: pkg.PkgPath,
-					})
-					break // 同じ関数を複数回追加しないように
-				}
-			}
-		}
-	}
-
-	return functions
-}
-
-// GetFunctionReturnType は指定された関数の返り値の型を取得する
-func GetFunctionReturnType(funcName, packagePath string, pkgs []*packages.Package) (types.Type, bool) {
-	for _, pkg := range pkgs {
-		if pkg.PkgPath != packagePath {
-			continue
-		}
-
-		obj := pkg.Types.Scope().Lookup(funcName)
-		if obj == nil {
-			continue
-		}
-
-		fn, ok := obj.(*types.Func)
-		if !ok {
-			continue
-		}
-
-		sig, ok := fn.Type().(*types.Signature)
-		if !ok || sig.Results() == nil || sig.Results().Len() == 0 {
-			continue
-		}
-
-		return sig.Results().At(0).Type(), true
-	}
-
-	return nil, false
-}
+// 	return result
+// }

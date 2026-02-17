@@ -2,32 +2,31 @@ package pipe
 
 import (
 	"testing"
+
+	"github.com/rmocchy/convinient_wire/internal/core"
 )
 
 func TestNewWireAnalyzer(t *testing.T) {
 	tests := []struct {
-		name          string
-		workDir       string
-		searchPattern string
-		wantErr       bool
+		name    string
+		workDir string
+		wantErr bool
 	}{
 		{
-			name:          "valid sample/basic",
-			workDir:       "../../sample/basic",
-			searchPattern: "./...",
-			wantErr:       false,
+			name:    "valid sample/basic",
+			workDir: "../../sample/basic",
+			wantErr: false,
 		},
 		{
-			name:          "invalid directory",
-			workDir:       "/nonexistent",
-			searchPattern: "./...",
-			wantErr:       true,
+			name:    "invalid directory",
+			workDir: "/nonexistent",
+			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			analyzer, err := NewWireAnalyzer(tt.workDir, tt.searchPattern)
+			analyzer, err := NewWireAnalyzer(tt.workDir)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewWireAnalyzer() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -41,9 +40,8 @@ func TestNewWireAnalyzer(t *testing.T) {
 
 func TestWireAnalyzer_AnalyzeStruct(t *testing.T) {
 	workDir := "../../sample/basic"
-	searchPattern := "./..."
 
-	analyzer, err := NewWireAnalyzer(workDir, searchPattern)
+	analyzer, err := NewWireAnalyzer(workDir)
 	if err != nil {
 		t.Fatalf("Failed to create analyzer: %v", err)
 	}
@@ -101,7 +99,7 @@ func TestWireAnalyzer_AnalyzeStruct(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := analyzer.AnalyzeStruct(tt.packagePath, tt.structName)
+			result, err := analyzer.AnalyzeStruct(tt.structName, core.NewPackagePath(tt.packagePath))
 			if (err != nil) != tt.wantErr {
 				t.Errorf("AnalyzeStruct() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -137,17 +135,16 @@ func TestIsBuiltinType(t *testing.T) {
 
 func TestFindInitFunctions(t *testing.T) {
 	workDir := "../../sample/basic"
-	searchPattern := "./..."
 
-	analyzer, err := NewWireAnalyzer(workDir, searchPattern)
+	analyzer, err := NewWireAnalyzer(workDir)
 	if err != nil {
 		t.Fatalf("Failed to create analyzer: %v", err)
 	}
 
 	// Config構造体を解析して初期化関数が見つかることを確認
 	result, err := analyzer.AnalyzeStruct(
-		"github.com/rmocchy/convinient_wire/sample/basic/repository",
 		"Config",
+		core.NewPackagePath("github.com/rmocchy/convinient_wire/sample/basic/repository"),
 	)
 	if err != nil {
 		t.Fatalf("Failed to analyze Config struct: %v", err)
