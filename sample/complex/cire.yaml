@@ -1,4 +1,37 @@
 root:
+    - struct_name: UserAppSet
+      package_path: github.com/rmocchy/convinient_wire/sample/complex
+      init_functions:
+        - name: InitializeUserApp
+          package_path: github.com/rmocchy/convinient_wire/sample/complex
+          signature: func() (*github.com/rmocchy/convinient_wire/sample/complex.UserAppSet, error)
+      fields:
+        - field_name: UserHandler
+          type: UserHandler
+          node_type: struct
+          package_path: github.com/rmocchy/convinient_wire/sample/complex/handler
+          init_functions:
+            - name: NewUserHandler
+              package_path: github.com/rmocchy/convinient_wire/sample/complex/handler
+              signature: func(service github.com/rmocchy/convinient_wire/sample/complex/service.UserService) *github.com/rmocchy/convinient_wire/sample/complex/handler.UserHandler
+          fields:
+            - field_name: service
+              type: UserService
+              node_type: interface
+              package_path: github.com/rmocchy/convinient_wire/sample/complex/service
+              init_functions:
+                - name: NewUserService
+                  package_path: github.com/rmocchy/convinient_wire/sample/complex/service
+                  signature: func(repo github.com/rmocchy/convinient_wire/sample/complex/repository.UserRepository) github.com/rmocchy/convinient_wire/sample/complex/service.UserService
+              dependencies:
+                - field_name: repo
+                  type: UserRepository
+                  node_type: interface
+                  package_path: github.com/rmocchy/convinient_wire/sample/complex/repository
+                  init_functions:
+                    - name: NewUserRepository
+                      package_path: github.com/rmocchy/convinient_wire/sample/complex/repository
+                      signature: func() github.com/rmocchy/convinient_wire/sample/complex/repository.UserRepository
     - struct_name: OrderAppSet
       package_path: github.com/rmocchy/convinient_wire/sample/complex
       init_functions:

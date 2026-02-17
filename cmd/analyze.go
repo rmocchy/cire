@@ -52,6 +52,7 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	}
 
 	// 各アノテーション付き構造体を解析
+	results := make([]*pipe.StructNode, 0, len(targetStructs))
 	for _, structName := range targetStructs {
 		// アナライザの作成
 		analyzer, err := pipe.NewWireAnalyzer(loader.FunctionCache, loader.StructCache)
@@ -65,10 +66,12 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to analyze struct %s: %w", structName, err)
 		}
 
-		// YAML形式で出力
-		if err := pipe.OutputToYAML(result, outputFile); err != nil {
-			return err
-		}
+		results = append(results, result)
+	}
+
+	// すべての結果をYAML形式で出力
+	if err := pipe.OutputMultipleToYAML(results, outputFile); err != nil {
+		return err
 	}
 
 	return nil

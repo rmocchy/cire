@@ -142,3 +142,37 @@ func OutputToYAML(node *StructNode, outputFile string) error {
 
 	return nil
 }
+
+// OutputMultipleToYAML は複数の解析結果をYAML形式で出力する
+// outputFile が空文字列の場合は標準出力に出力
+func OutputMultipleToYAML(nodes []*StructNode, outputFile string) error {
+	if len(nodes) == 0 {
+		return fmt.Errorf("no nodes to output")
+	}
+
+	// すべてのノードをYAMLに変換
+	yamlOutputs := make([]YAMLOutput, 0, len(nodes))
+	for _, node := range nodes {
+		yamlOutputs = append(yamlOutputs, ToYAMLOutput(node))
+	}
+
+	rootOutput := YAMLRootOutput{
+		Root: yamlOutputs,
+	}
+	yamlData, err := yaml.Marshal(&rootOutput)
+	if err != nil {
+		return fmt.Errorf("failed to marshal to YAML: %w", err)
+	}
+
+	// 出力
+	if outputFile != "" {
+		if err := os.WriteFile(outputFile, yamlData, 0644); err != nil {
+			return fmt.Errorf("failed to write output file: %w", err)
+		}
+		fmt.Fprintf(os.Stderr, "Successfully wrote dependencies to %s\n", outputFile)
+	} else {
+		fmt.Print(string(yamlData))
+	}
+
+	return nil
+}

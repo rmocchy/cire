@@ -4,11 +4,10 @@
 
 ## 特徴
 
-### 1. 複数のルートフィールド
-`AppSet` 構造体は3つのハンドラーをルートとして持っています：
-- `UserHandler`
-- `ProductHandler`
-- `OrderHandler`
+### 1. 複数の@cire構造体
+2つの独立したルート構造体があります：
+- `UserAppSet`: UserHandlerのみ
+- `OrderAppSet`: ProductHandlerとOrderHandler
 
 ### 2. 並列依存
 `OrderService` は2つのリポジトリに並列で依存しています：
@@ -17,11 +16,17 @@
 
 ## 依存関係構造
 
+### UserAppSet (単一ルート)
 ```
-AppSet (ルート構造体)
-├── UserHandler -> UserService -> UserRepository
-├── ProductHandler -> ProductService -> ProductRepository
-└── OrderHandler -> OrderService -> [UserRepository, ProductRepository] (並列依存)
+UserAppSet
+└── UserHandler → UserService → UserRepository
+```
+
+### OrderAppSet (複数ルート + 並列依存)
+```
+OrderAppSet
+├── ProductHandler → ProductService → ProductRepository
+└── OrderHandler → OrderService → [UserRepository, ProductRepository] (並列依存)
 ```
 
 ## 実行
