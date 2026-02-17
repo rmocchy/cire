@@ -3,9 +3,9 @@ package load
 import (
 	"fmt"
 	"go/ast"
+	"go/build"
 	"go/parser"
 	"go/token"
-	"strings"
 )
 
 // FindAnnotatedStructs は指定されたファイルからすべての構造体を検出する
@@ -18,7 +18,7 @@ func FindAnnotatedStructs(filePath string) ([]string, error) {
 	}
 
 	// ビルドタグの確認
-	if !hasCireBuildTag(node) {
+	if ok, err := hasCireBuildTag(filePath); !ok || err != nil {
 		return nil, fmt.Errorf("file %s does not have '//go:build cire' build tag", filePath)
 	}
 
@@ -56,18 +56,18 @@ func FindAnnotatedStructs(filePath string) ([]string, error) {
 }
 
 // hasCireBuildTag はファイルに //go:build cire ビルドタグがあるかをチェックする
-func hasCireBuildTag(node *ast.File) bool {
-	for _, commentGroup := range node.Comments {
-		for _, comment := range commentGroup.List {
-			text := comment.Text
-			// //go:build cire または // +build cire を探す
-			if strings.Contains(text, "go:build") && strings.Contains(text, "cire") {
-				return true
-			}
-			if strings.Contains(text, "+build") && strings.Contains(text, "cire") {
-				return true
-			}
-		}
+func hasCireBuildTag(filePath string) (bool, error) {
+	ctxDefault := build.Default
+	ctxCire := build.Default
+	ctxCire.BuildTags = append(ctxCire.BuildTags, "cire")
+
+	defaultIncluded, err := ctxDefault.MatchFile(".", filePath)
+	if err != nil {
+		return false, err
 	}
-	return false
+	cireIncluded, err := ctxCire.MatchFile(".", filePath)
+	if err != nil {
+		return false, err
+	}
+	return !defaultIncluded && cireIncluded, nil
 }

@@ -1,6 +1,10 @@
 package pipe
 
-import "go/types"
+import (
+	"go/types"
+
+	"github.com/rmocchy/convinient_wire/internal/core"
+)
 
 // NodeType はノードの種類を表す
 type NodeType int
@@ -15,6 +19,14 @@ const (
 type FieldNode interface {
 	GetFieldName() string
 	NodeType() NodeType
+}
+
+// StructAnalyzer は構造体の解析を行うインターフェース
+type StructAnalyzer interface {
+	// AnalyzeStruct は構造体を解析する（エントリーポイント）
+	AnalyzeStruct(structName string, packagePath core.PackagePath) (*StructNode, error)
+	// AnalyzeNamedStructType は名前付き構造体型を解析する
+	AnalyzeNamedStructType(structName string, packagePath core.PackagePath, structType *types.Struct) (*StructNode, error)
 }
 
 // StructNode は構造体ノードを表す（構造体の定義とフィールドを保持）

@@ -10,7 +10,7 @@ import (
 )
 
 // テスト用のヘルパー関数: パッケージをロードしてキャッシュを作成
-func setupTestAnalyzer(t *testing.T, workDir string) (*WireAnalyzer, error) {
+func setupTestAnalyzer(t *testing.T, workDir string) (StructAnalyzer, error) {
 	t.Helper()
 
 	cfg := &packages.Config{
