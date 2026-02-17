@@ -55,9 +55,9 @@ func LoadPackages(packagePath string) (*PackageLoader, error) {
 }
 
 // LoadPackagesFromFile は指定されたファイルからパッケージをロードする
-func LoadPackagesFromFile(filePath string) (*PackageLoader, error) {
+func LoadPackagesFromFile(path string) (*PackageLoader, error) {
 	// ファイルのディレクトリを取得
-	dir := filepath.Dir(filePath)
+	dir := filepath.Dir(path)
 
 	// パッケージのロード設定
 	cfg := &packages.Config{
@@ -93,7 +93,7 @@ func LoadPackagesFromFile(filePath string) (*PackageLoader, error) {
 }
 
 // ResolvePackagePath は指定されたファイルの実際のパッケージパスを解決する
-func ResolvePackagePath(filePath string) (string, error) {
+func ResolvePackagePath(filePath string) (*core.PackagePath, error) {
 	dir := filepath.Dir(filePath)
 
 	cfg := &packages.Config{
@@ -103,12 +103,13 @@ func ResolvePackagePath(filePath string) (string, error) {
 
 	pkgs, err := packages.Load(cfg, ".")
 	if err != nil {
-		return "", fmt.Errorf("failed to load package: %w", err)
+		return nil, fmt.Errorf("failed to load package: %w", err)
 	}
 
 	if len(pkgs) == 0 {
-		return "", fmt.Errorf("no package found for file: %s", filePath)
+		return nil, fmt.Errorf("no package found for file: %s", filePath)
 	}
 
-	return pkgs[0].PkgPath, nil
+	pkgPath := core.NewPackagePath(pkgs[0].PkgPath)
+	return &pkgPath, nil
 }

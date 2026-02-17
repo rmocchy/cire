@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	pipe "github.com/rmocchy/convinient_wire/internal/analyze"
-	"github.com/rmocchy/convinient_wire/internal/core"
 	"github.com/rmocchy/convinient_wire/internal/load"
 	"github.com/spf13/cobra"
 )
@@ -35,7 +34,7 @@ func init() {
 
 func runAnalyze(cmd *cobra.Command, args []string) error {
 	// ファイルからアノテーション付き構造体を検出
-	annotatedStructs, err := load.FindAnnotatedStructs(filePath)
+	targetStructs, err := load.FindAnnotatedStructs(filePath)
 	if err != nil {
 		return err
 	}
@@ -46,11 +45,6 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// 最初の構造体のパッケージパスを設定
-	for i := range annotatedStructs {
-		annotatedStructs[i].PackagePath = pkgPath
-	}
-
 	// パッケージのロード
 	loader, err := load.LoadPackagesFromFile(filePath)
 	if err != nil {
@@ -58,7 +52,7 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	}
 
 	// 各アノテーション付き構造体を解析
-	for _, annotated := range annotatedStructs {
+	for _, structName := range targetStructs {
 		// アナライザの作成
 		analyzer, err := pipe.NewWireAnalyzer(loader.FunctionCache, loader.StructCache)
 		if err != nil {
@@ -66,10 +60,9 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 		}
 
 		// 構造体の解析
-		corePkgPath := core.NewPackagePath(annotated.PackagePath)
-		result, err := analyzer.AnalyzeStruct(annotated.Name, corePkgPath)
+		result, err := analyzer.AnalyzeStruct(structName, *pkgPath)
 		if err != nil {
-			return fmt.Errorf("failed to analyze struct %s: %w", annotated.Name, err)
+			return fmt.Errorf("failed to analyze struct %s: %w", structName, err)
 		}
 
 		// YAML形式で出力
