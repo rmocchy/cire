@@ -35,7 +35,6 @@ func init() {
 }
 
 func runAnalyze(cmd *cobra.Command, args []string) error {
-	// ファイルから構造体を検出（//go:build cire タグ付きファイル内のすべての構造体）
 	targetStructs, err := load.FindAnnotatedStructs(filePath)
 	if err != nil {
 		return err

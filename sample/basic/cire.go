@@ -1,5 +1,5 @@
-//go:build cire
-// +build cire
+//go:build wireinject
+// +build wireinject
 
 package main
 

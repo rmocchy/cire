@@ -16,7 +16,6 @@ type WireData struct {
 	PackageName  string
 	Imports      []string
 	ProviderSets []ProviderSetData
-	Structs      []StructDef
 }
 
 // ProviderSetData は各 Provider セットのデータ
@@ -25,21 +24,8 @@ type ProviderSetData struct {
 	Providers  []string
 }
 
-// StructDef は構造体定義のデータ
-type StructDef struct {
-	Name   string
-	Fields []StructFieldDef
-}
-
-// StructFieldDef は構造体フィールドのデータ
-type StructFieldDef struct {
-	Name    string
-	Type    string
-	Pointer bool
-}
-
 // GenerateWireFile は解析結果から wire.go を生成する
-func GenerateWireFile(results []*pipe.StructNode, inputFilePath string) error {
+func GenerateWireFile(rootStructs []*pipe.StructNode, inputFilePath string) error {
 	dir := filepath.Dir(inputFilePath)
 	outputPath := filepath.Join(dir, "wire.go")
 	packageName := filepath.Base(dir)
@@ -47,9 +33,8 @@ func GenerateWireFile(results []*pipe.StructNode, inputFilePath string) error {
 	// インポート収集用のmap
 	importMap := make(map[string]bool)
 
-	// 構造体定義とプロバイダーセットを収集
-	structs := collectStructDefs(results, importMap)
-	providerSets := collectProviderSets(results, importMap)
+	// プロバイダーセットを収集
+	providerSets := collectProviderSets(rootStructs, importMap)
 
 	// インポートリストを作成
 	imports := make([]string, 0, len(importMap))
@@ -62,7 +47,6 @@ func GenerateWireFile(results []*pipe.StructNode, inputFilePath string) error {
 		PackageName:  packageName,
 		Imports:      imports,
 		ProviderSets: providerSets,
-		Structs:      structs,
 	})
 }
 

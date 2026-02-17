@@ -6,20 +6,20 @@ import (
 	pipe "github.com/rmocchy/convinient_wire/internal/analyze"
 )
 
-// collectProviderSets は StructNode からプロバイダーセットを収集する
-func collectProviderSets(results []*pipe.StructNode, importMap map[string]bool) []ProviderSetData {
-	providerSets := make([]ProviderSetData, 0, len(results))
+// collectProviderSets はルート構造体からプロバイダーセットを収集する
+func collectProviderSets(rootStructs []*pipe.StructNode, importMap map[string]bool) []ProviderSetData {
+	providerSets := make([]ProviderSetData, 0, len(rootStructs))
 
-	for _, result := range results {
+	for _, root := range rootStructs {
 		providerMap := make(map[string]bool)
 		providers := []string{}
 
 		// フィールドの依存関係から再帰的に initFunction を収集
-		collectInitFunctionsFromFields(result.Fields, importMap, providerMap, &providers)
+		collectInitFunctionsFromFields(root.Fields, importMap, providerMap, &providers)
 
 		if len(providers) > 0 {
 			providerSets = append(providerSets, ProviderSetData{
-				StructName: result.StructName,
+				StructName: root.StructName,
 				Providers:  providers,
 			})
 		}
