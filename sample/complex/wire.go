@@ -15,6 +15,7 @@ var UserAppSet = wire.NewSet(
 	repository.NewUserRepository,
 	service.NewUserService,
 	handler.NewUserHandler,
+	wire.Struct(new(UserApp), "*"),
 )
 
 // InitializeUserApp initializes UserApp with all dependencies
@@ -31,6 +32,7 @@ var OrderAppSet = wire.NewSet(
 	repository.NewUserRepository,
 	service.NewOrderService,
 	handler.NewOrderHandler,
+	wire.Struct(new(OrderApp), "*"),
 )
 
 // InitializeOrderApp initializes OrderApp with all dependencies

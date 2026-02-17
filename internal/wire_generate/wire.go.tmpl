@@ -16,6 +16,7 @@ var {{.StructName}}Set = wire.NewSet(
 {{- range .Providers}}
 	{{.}},
 {{- end}}
+	wire.Struct(new({{.StructName}}), "*"),
 )
 
 // Initialize{{.StructName}} initializes {{.StructName}} with all dependencies

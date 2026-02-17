@@ -18,11 +18,6 @@ func FindAnnotatedStructs(filePath string) ([]string, error) {
 		return nil, fmt.Errorf("failed to parse file: %w", err)
 	}
 
-	// ビルドタグの確認
-	if ok, err := hasCireBuildTag(filePath); !ok || err != nil {
-		return nil, fmt.Errorf("file %s does not have '//go:build cire' build tag", filePath)
-	}
-
 	results := make([]string, 0)
 
 	ast.Inspect(node, func(n ast.Node) bool {
