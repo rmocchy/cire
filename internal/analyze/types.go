@@ -3,7 +3,7 @@ package analyze
 import (
 	"go/types"
 
-	"github.com/rmocchy/convinient_wire/internal/core"
+	"github.com/rmocchy/cire/internal/core"
 )
 
 // NodeType はノードの種類を表す

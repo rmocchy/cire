@@ -4,8 +4,8 @@ import (
 	"go/types"
 	"testing"
 
-	"github.com/rmocchy/convinient_wire/internal/cache"
-	"github.com/rmocchy/convinient_wire/internal/core"
+	"github.com/rmocchy/cire/internal/cache"
+	"github.com/rmocchy/cire/internal/core"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -84,7 +84,7 @@ func TestWireAnalyzer_AnalyzeStruct(t *testing.T) {
 	}{
 		{
 			name:        "analyze UserHandler",
-			packagePath: "github.com/rmocchy/convinient_wire/sample/basic/handler",
+			packagePath: "github.com/rmocchy/cire/sample/basic/handler",
 			structName:  "UserHandler",
 			wantErr:     false,
 			validate: func(t *testing.T, node *StructNode) {
@@ -122,7 +122,7 @@ func TestWireAnalyzer_AnalyzeStruct(t *testing.T) {
 		},
 		{
 			name:        "analyze Config",
-			packagePath: "github.com/rmocchy/convinient_wire/sample/basic/repository",
+			packagePath: "github.com/rmocchy/cire/sample/basic/repository",
 			structName:  "Config",
 			wantErr:     false,
 			validate: func(t *testing.T, node *StructNode) {
@@ -147,7 +147,7 @@ func TestWireAnalyzer_AnalyzeStruct(t *testing.T) {
 		},
 		{
 			name:        "non-existent struct",
-			packagePath: "github.com/rmocchy/convinient_wire/sample/basic",
+			packagePath: "github.com/rmocchy/cire/sample/basic",
 			structName:  "NonExistentStruct",
 			wantErr:     true,
 			validate:    nil,
@@ -209,7 +209,7 @@ func TestWireAnalyzer_AnalyzeStructWithNestedFields(t *testing.T) {
 	// Config構造体を解析（ビルトインフィールドを含む）
 	result, err := analyzer.AnalyzeStruct(
 		"Config",
-		core.NewPackagePath("github.com/rmocchy/convinient_wire/sample/basic/repository"),
+		core.NewPackagePath("github.com/rmocchy/cire/sample/basic/repository"),
 	)
 	if err != nil {
 		t.Fatalf("Failed to analyze Config struct: %v", err)

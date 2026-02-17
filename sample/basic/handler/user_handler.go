@@ -3,7 +3,7 @@ package handler
 import (
 	"fmt"
 
-	"github.com/rmocchy/convinient_wire/sample/basic/service"
+	"github.com/rmocchy/cire/sample/basic/service"
 )
 
 // UserHandler はユーザーハンドラー

@@ -1,4 +1,4 @@
-module github.com/rmocchy/convinient_wire
+module github.com/rmocchy/cire
 
 go 1.25.1
 
@@ -16,4 +16,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/rmocchy/convinient_wire/sample/basic => ./sample/basic
+replace github.com/rmocchy/cire/sample/basic => ./sample/basic

@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/rmocchy/convinient_wire/internal/cache"
-	"github.com/rmocchy/convinient_wire/internal/core"
+	"github.com/rmocchy/cire/internal/cache"
+	"github.com/rmocchy/cire/internal/core"
 	"golang.org/x/tools/go/packages"
 )
 

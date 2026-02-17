@@ -3,7 +3,7 @@ package wiregenerate
 import (
 	"go/types"
 
-	pipe "github.com/rmocchy/convinient_wire/internal/analyze"
+	pipe "github.com/rmocchy/cire/internal/analyze"
 )
 
 // collectProviderSets はルート構造体からプロバイダーセットを収集する

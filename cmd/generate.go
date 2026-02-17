@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/rmocchy/convinient_wire/internal/analyze"
-	pipe "github.com/rmocchy/convinient_wire/internal/analyze"
-	"github.com/rmocchy/convinient_wire/internal/load"
-	wiregenerate "github.com/rmocchy/convinient_wire/internal/wire_generate"
-	"github.com/rmocchy/convinient_wire/internal/yaml"
+	"github.com/rmocchy/cire/internal/analyze"
+	pipe "github.com/rmocchy/cire/internal/analyze"
+	"github.com/rmocchy/cire/internal/load"
+	wiregenerate "github.com/rmocchy/cire/internal/wire_generate"
+	"github.com/rmocchy/cire/internal/yaml"
 	"github.com/spf13/cobra"
 )
 

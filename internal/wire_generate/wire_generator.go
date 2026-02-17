@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"text/template"
 
-	pipe "github.com/rmocchy/convinient_wire/internal/analyze"
+	pipe "github.com/rmocchy/cire/internal/analyze"
 )
 
 // WireData は wire.go テンプレートに渡すデータ

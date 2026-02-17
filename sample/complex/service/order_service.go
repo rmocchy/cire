@@ -3,7 +3,7 @@ package service
 import (
 	"fmt"
 
-	"github.com/rmocchy/convinient_wire/sample/complex/repository"
+	"github.com/rmocchy/cire/sample/complex/repository"
 )
 
 // OrderService は注文サービスのインターフェース（並列依存の例）

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/rmocchy/convinient_wire/cmd"
+	"github.com/rmocchy/cire/cmd"
 )
 
 func main() {

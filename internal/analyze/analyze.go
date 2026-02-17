@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"go/types"
 
-	"github.com/rmocchy/convinient_wire/internal/core"
+	"github.com/rmocchy/cire/internal/core"
 )
 
 // wireAnalyzer はwire.goの解析を行う（internal/coreを使用）

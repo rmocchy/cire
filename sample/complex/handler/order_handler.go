@@ -1,6 +1,6 @@
 package handler
 
-import "github.com/rmocchy/convinient_wire/sample/complex/service"
+import "github.com/rmocchy/cire/sample/complex/service"
 
 // OrderHandler は注文ハンドラー
 type OrderHandler struct {

@@ -5,7 +5,7 @@ Google Wire の `wire.go` を自動生成する CLI ツール
 ## インストール
 
 ```bash
-go install github.com/rmocchy/convinient_wire@latest
+go install github.com/rmocchy/cire@latest
 ```
 
 ## 使い方

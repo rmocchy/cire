@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/rmocchy/convinient_wire/sample/complex/handler"
+	"github.com/rmocchy/cire/sample/complex/handler"
 )
 
 // UserApp はUserHandlerを持つルート構造体

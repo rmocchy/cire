@@ -5,7 +5,7 @@ import (
 	"go/types"
 	"os"
 
-	"github.com/rmocchy/convinient_wire/internal/analyze"
+	"github.com/rmocchy/cire/internal/analyze"
 	"gopkg.in/yaml.v3"
 )
 

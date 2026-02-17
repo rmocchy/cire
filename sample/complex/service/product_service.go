@@ -1,6 +1,6 @@
 package service
 
-import "github.com/rmocchy/convinient_wire/sample/complex/repository"
+import "github.com/rmocchy/cire/sample/complex/repository"
 
 // ProductService は商品サービスのインターフェース
 type ProductService interface {
