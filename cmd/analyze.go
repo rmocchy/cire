@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"path/filepath"
 
 	pipe "github.com/rmocchy/convinient_wire/internal/analyze"
 	"github.com/rmocchy/convinient_wire/internal/load"
@@ -9,8 +10,8 @@ import (
 )
 
 var (
-	filePath   string
-	outputFile string
+	filePath     string
+	generateYAML bool
 )
 
 var analyzeCmd = &cobra.Command{
@@ -18,8 +19,8 @@ var analyzeCmd = &cobra.Command{
 	Short: "Analyze struct dependencies and output to YAML",
 	Long: `Analyze structs defined in a file with //go:build cire tag and output the dependency tree in YAML format.
 The target file must have the build tag "//go:build cire" and contain struct definitions.`,
-	Example: `  convinient_wire analyze --file ./cire_structs.go --output dependencies.yaml
-  convinient_wire analyze -f ./cire_structs.go`,
+	Example: `  convinient_wire analyze --file ./cire_structs.go --yaml
+  convinient_wire analyze -f ./cire_structs.go -y`,
 	RunE: runAnalyze,
 }
 
@@ -27,7 +28,7 @@ func init() {
 	rootCmd.AddCommand(analyzeCmd)
 
 	analyzeCmd.Flags().StringVarP(&filePath, "file", "f", "", "Go file path with //go:build cire tag containing struct definitions (required)")
-	analyzeCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Output file path (default: stdout)")
+	analyzeCmd.Flags().BoolVarP(&generateYAML, "yaml", "y", false, "Generate YAML file in the same directory as the input file")
 
 	analyzeCmd.MarkFlagRequired("file")
 }
@@ -69,9 +70,17 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 		results = append(results, result)
 	}
 
-	// すべての結果をYAML形式で出力
-	if err := pipe.OutputMultipleToYAML(results, outputFile); err != nil {
-		return err
+	// YAMLフラグが指定されている場合のみYAML生成
+	if generateYAML {
+		// 入力ファイルと同じディレクトリにYAMLファイルを出力
+		dir := filepath.Dir(filePath)
+		outputPath := filepath.Join(dir, "cire.yaml")
+
+		if err := pipe.OutputMultipleToYAML(results, outputPath); err != nil {
+			return err
+		}
+
+		fmt.Printf("YAML file generated: %s\n", outputPath)
 	}
 
 	return nil
