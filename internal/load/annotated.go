@@ -3,10 +3,8 @@ package load
 import (
 	"fmt"
 	"go/ast"
-	"go/build"
 	"go/parser"
 	"go/token"
-	"path/filepath"
 )
 
 // FindAnnotatedStructs は指定されたファイルからすべての構造体を検出する
@@ -49,24 +47,4 @@ func FindAnnotatedStructs(filePath string) ([]string, error) {
 	}
 
 	return results, nil
-}
-
-// hasCireBuildTag はファイルに //go:build cire ビルドタグがあるかをチェックする
-func hasCireBuildTag(filePath string) (bool, error) {
-	dir := filepath.Dir(filePath)
-	base := filepath.Base(filePath)
-
-	ctxDefault := build.Default
-	ctxCire := build.Default
-	ctxCire.BuildTags = append(ctxCire.BuildTags, "wireinject")
-
-	defaultIncluded, err := ctxDefault.MatchFile(dir, base)
-	if err != nil {
-		return false, err
-	}
-	cireIncluded, err := ctxCire.MatchFile(dir, base)
-	if err != nil {
-		return false, err
-	}
-	return !defaultIncluded && cireIncluded, nil
 }
