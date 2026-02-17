@@ -38,7 +38,3 @@ wire ./
 
 - [sample/basic/](sample/basic/)
 - [sample/complex/](sample/complex/)
-
-## ライセンス
-
-MIT
