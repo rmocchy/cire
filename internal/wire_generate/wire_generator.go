@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"go/format"
+	"go/parser"
+	"go/token"
 	"os"
 	"path/filepath"
 	"text/template"
@@ -28,7 +30,7 @@ type ProviderSetData struct {
 func GenerateWireFile(rootStructs []*pipe.StructNode, inputFilePath string) error {
 	dir := filepath.Dir(inputFilePath)
 	outputPath := filepath.Join(dir, "wire.go")
-	packageName := filepath.Base(dir)
+	packageName := "main"
 
 	// インポート収集用のmap
 	importMap := make(map[string]bool)

@@ -63,7 +63,7 @@ func hasCireBuildTag(filePath string) (bool, error) {
 
 	ctxDefault := build.Default
 	ctxCire := build.Default
-	ctxCire.BuildTags = append(ctxCire.BuildTags, "wireinject", "cire")
+	ctxCire.BuildTags = append(ctxCire.BuildTags, "wireinject")
 
 	defaultIncluded, err := ctxDefault.MatchFile(dir, base)
 	if err != nil {

@@ -76,8 +76,8 @@ func LoadPackagesFromFile(path string) (*PackageLoader, error) {
 			packages.NeedTypes |
 			packages.NeedSyntax |
 			packages.NeedTypesInfo,
-		Dir:        moduleRoot, // モジュールルートを設定
-		BuildFlags: []string{"-tags=cire"},
+		Dir:        moduleRoot,                   // モジュールルートを設定
+		BuildFlags: []string{"-tags=wireinject"}, // ビルドタグを指定
 	}
 
 	// ファイルが含まれるパッケージとその依存関係をロード
