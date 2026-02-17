@@ -4,7 +4,7 @@
 # ビルド
 .PHONY: build
 build: ## バイナリをビルド
-	go build -o convinient_wire
+	go build -o cire
 
 # 単体テスト
 .PHONY: test
