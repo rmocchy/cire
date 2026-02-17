@@ -28,7 +28,6 @@ type YAMLOutput struct {
 type YAMLFunction struct {
 	Name        string `yaml:"name"`
 	PackagePath string `yaml:"package_path"`
-	Signature   string `yaml:"signature"`
 }
 
 // YAMLFieldNode はフィールドをYAML形式で出力するための構造体
@@ -68,7 +67,6 @@ func convertFunctions(fns []*types.Func) []YAMLFunction {
 		result = append(result, YAMLFunction{
 			Name:        fn.Name(),
 			PackagePath: fn.Pkg().Path(),
-			Signature:   fn.Type().String(),
 		})
 	}
 	return result
