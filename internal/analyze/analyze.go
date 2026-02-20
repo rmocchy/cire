@@ -70,10 +70,18 @@ func (a *analyze) recursiveAnalyze(retrunType *types.Named) ([]*FnDITreeNode, er
 			}
 			childs = append(childs, dependFns...)
 		}
+
+		rets := fn.Signature().Results()
+		returnTypes := make([]string, 0, rets.Len())
+		for i := 0; i < rets.Len(); i++ {
+			returnTypes = append(returnTypes, rets.At(i).Type().String())
+		}
+
 		node := FnDITreeNode{
-			Name:    fn.Name(),
-			PkgPath: fn.Pkg().Path(),
-			Childs:  childs,
+			Name:        fn.Name(),
+			PkgPath:     fn.Pkg().Path(),
+			Childs:      childs,
+			ReturnTypes: returnTypes,
 		}
 
 		treeNodes = append(treeNodes, &node)

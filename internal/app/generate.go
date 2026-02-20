@@ -48,11 +48,26 @@ func RunGenerate(input *GenerateInput) error {
 		if err != nil {
 			return err
 		}
-		// TODO: 異なる関数による同じ構造体の依存解決があった場合,
-		// 依存マッピングをjsonで出力の上でエラーにする
 		converter := analyze.NewConvertTreeToUniqueList()
 		for _, tree := range trees {
 			converter.Execute(tree)
+		}
+
+		// 依存関係から生成可能かどうかをチェック
+		verr := analyze.IsDepTreeSatisfiable(converter.List())
+
+		if input.GenJson || verr != nil {
+			jsonConfig := &analyze.JsonConfig{
+				Dir:        dir,
+				StructName: s.Obj().Name(),
+				Data:       trees,
+			}
+			if err := analyze.WriteOnJsonFile(jsonConfig); err != nil {
+				return err
+			}
+			if verr != nil {
+				return fmt.Errorf("dependency tree is not satisfiable for struct %s: %w", s.Obj().Name(), verr)
+			}
 		}
 
 		providers := make([]generate.Provider, 0, len(converter.List()))
