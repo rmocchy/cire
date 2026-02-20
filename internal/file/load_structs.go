@@ -21,6 +21,12 @@ func LoadNamedStructs(path string, pkgs []*packages.Package) ([]*types.Named, er
 		}
 		for _, name := range p.Types.Scope().Names() {
 			obj := p.Types.Scope().Lookup(name)
+			// 型宣言（TypeName）のみを対象とする。変数（Var）はその型が外部パッケージの
+			// 構造体であっても解析対象に含めない（例: var AppSet = wire.NewSet(...) が
+			// wire.ProviderSet として混入するのを防ぐ）
+			if _, ok := obj.(*types.TypeName); !ok {
+				continue
+			}
 			named, ok := obj.Type().(*types.Named)
 			if !ok {
 				continue
