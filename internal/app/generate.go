@@ -42,32 +42,23 @@ func RunGenerate(input *GenerateInput) error {
 	}
 	config.SetPackageName(*usePkgName)
 
+	validationErrors := make([]error, 0)
+	mergedTree := make(map[string][]*analyze.FnDITreeNode, 0)
 	// 構造体ごとに解析実行
 	for _, s := range structs {
 		trees, err := analyzer.ExecuteFromStruct(s)
 		if err != nil {
 			return err
 		}
+		mergedTree[s.Obj().Name()] = trees
 		converter := analyze.NewConvertTreeToUniqueList()
 		for _, tree := range trees {
 			converter.Execute(tree)
 		}
 
 		// 依存関係から生成可能かどうかをチェック
-		verr := analyze.IsDepTreeSatisfiable(converter.List())
-
-		if input.GenJson || verr != nil {
-			jsonConfig := &analyze.JsonConfig{
-				Dir:        dir,
-				StructName: s.Obj().Name(),
-				Data:       trees,
-			}
-			if err := analyze.WriteOnJsonFile(jsonConfig); err != nil {
-				return err
-			}
-			if verr != nil {
-				return fmt.Errorf("dependency tree is not satisfiable for struct %s: %w", s.Obj().Name(), verr)
-			}
+		if err := analyze.IsDepTreeSatisfiable(converter.List()); err != nil {
+			validationErrors = append(validationErrors, fmt.Errorf("dependency tree is not satisfiable for struct %s: %w", s.Obj().Name(), err))
 		}
 
 		providers := make([]generate.Provider, 0, len(converter.List()))
@@ -78,6 +69,22 @@ func RunGenerate(input *GenerateInput) error {
 			})
 		}
 		config.AddStructSet(s.Obj().Name(), providers)
+	}
+
+	if input.GenJson || len(validationErrors) > 0 {
+		jsonConfig := &analyze.JsonConfig{
+			Dir:  dir,
+			Data: mergedTree,
+		}
+		if err := analyze.WriteOnJsonFile(jsonConfig); err != nil {
+			return err
+		}
+	}
+	if len(validationErrors) > 0 {
+		for _, verr := range validationErrors {
+			fmt.Fprintf(os.Stderr, "Validation error: %v\n", verr)
+		}
+		return fmt.Errorf("validation failed for one or more structs")
 	}
 
 	// コード生成

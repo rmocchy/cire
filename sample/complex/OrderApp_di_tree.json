@@ -1,0 +1,62 @@
+[
+  {
+    "name": "NewProductHandler",
+    "pkg_path": "github.com/rmocchy/cire/sample/complex/handler",
+    "childs": [
+      {
+        "name": "NewProductService",
+        "pkg_path": "github.com/rmocchy/cire/sample/complex/service",
+        "childs": [
+          {
+            "name": "NewProductRepository",
+            "pkg_path": "github.com/rmocchy/cire/sample/complex/repository",
+            "childs": [],
+            "return_types": [
+              "github.com/rmocchy/cire/sample/complex/repository.ProductRepository"
+            ]
+          }
+        ],
+        "return_types": [
+          "github.com/rmocchy/cire/sample/complex/service.ProductService"
+        ]
+      }
+    ],
+    "return_types": [
+      "*github.com/rmocchy/cire/sample/complex/handler.ProductHandler"
+    ]
+  },
+  {
+    "name": "NewOrderHandler",
+    "pkg_path": "github.com/rmocchy/cire/sample/complex/handler",
+    "childs": [
+      {
+        "name": "NewOrderService",
+        "pkg_path": "github.com/rmocchy/cire/sample/complex/service",
+        "childs": [
+          {
+            "name": "NewUserRepository",
+            "pkg_path": "github.com/rmocchy/cire/sample/complex/repository",
+            "childs": [],
+            "return_types": [
+              "github.com/rmocchy/cire/sample/complex/repository.UserRepository"
+            ]
+          },
+          {
+            "name": "NewProductRepository",
+            "pkg_path": "github.com/rmocchy/cire/sample/complex/repository",
+            "childs": [],
+            "return_types": [
+              "github.com/rmocchy/cire/sample/complex/repository.ProductRepository"
+            ]
+          }
+        ],
+        "return_types": [
+          "github.com/rmocchy/cire/sample/complex/service.OrderService"
+        ]
+      }
+    ],
+    "return_types": [
+      "*github.com/rmocchy/cire/sample/complex/handler.OrderHandler"
+    ]
+  }
+]

@@ -8,13 +8,12 @@ import (
 )
 
 type JsonConfig struct {
-	Dir        string
-	StructName string
-	Data       []*FnDITreeNode
+	Dir  string
+	Data map[string][]*FnDITreeNode
 }
 
 func WriteOnJsonFile(config *JsonConfig) error {
-	fileName := config.StructName + "_di_tree.json"
+	fileName := "dep_tree.json"
 	filePath := filepath.Join(config.Dir, fileName)
 
 	data, err := json.MarshalIndent(config.Data, "", "  ")

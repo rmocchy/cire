@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	filePath     string
-	generateYAML bool
+	filePath string
+	genJson  bool
 )
 
 var generateCmd = &cobra.Command{
@@ -24,7 +24,7 @@ func init() {
 	rootCmd.AddCommand(generateCmd)
 
 	generateCmd.Flags().StringVarP(&filePath, "file", "f", "", "Go file path with //go:build cire tag containing struct definitions (required)")
-	generateCmd.Flags().BoolVarP(&generateYAML, "yaml", "y", false, "Generate YAML file in the same directory as the input file")
+	generateCmd.Flags().BoolVarP(&genJson, "json", "j", false, "Generate YAML file in the same directory as the input file")
 
 	generateCmd.MarkFlagRequired("file")
 }
@@ -32,7 +32,7 @@ func init() {
 func runGenerate(cmd *cobra.Command, args []string) error {
 	input := app.GenerateInput{
 		FilePath: filePath,
-		GenJson:  generateYAML,
+		GenJson:  genJson,
 	}
 	return app.RunGenerate(&input)
 }
