@@ -16,7 +16,7 @@ func LoadNamedStructs(path string, pkgs []*packages.Package) ([]*types.Named, er
 	if err != nil {
 		return nil, err
 	}
-	pkgPath, err := ResolvePackagePath(path)
+	pkgPath, err := resolvePackagePath(path)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func getStructNames(path string) ([]string, error) {
 	return results, nil
 }
 
-func ResolvePackagePath(filePath string) (*string, error) {
+func resolvePackagePath(filePath string) (*string, error) {
 	dir := filepath.Dir(filePath)
 
 	cfg := &packages.Config{
