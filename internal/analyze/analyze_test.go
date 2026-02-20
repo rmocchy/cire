@@ -4,13 +4,11 @@ import (
 	"go/types"
 	"testing"
 
-	"github.com/rmocchy/cire/internal/cache"
-	"github.com/rmocchy/cire/internal/core"
 	"golang.org/x/tools/go/packages"
 )
 
-// テスト用のヘルパー関数: パッケージをロードしてキャッシュを作成
-func setupTestAnalyzer(t *testing.T, workDir string) (StructAnalyzer, error) {
+// loadTestPackages はテスト用のパッケージをロードする
+func loadTestPackages(t *testing.T, workDir string) []*packages.Package {
 	t.Helper()
 
 	cfg := &packages.Config{
@@ -22,219 +20,242 @@ func setupTestAnalyzer(t *testing.T, workDir string) (StructAnalyzer, error) {
 
 	pkgs, err := packages.Load(cfg, "./...")
 	if err != nil {
-		return nil, err
+		t.Fatalf("Failed to load packages: %v", err)
 	}
 
-	// エラーチェック
 	for _, pkg := range pkgs {
 		if len(pkg.Errors) > 0 {
-			return nil, pkg.Errors[0]
+			t.Fatalf("Package error: %v", pkg.Errors[0])
 		}
 	}
 
-	// キャッシュを作成
-	functionCache := cache.NewFunctionCache(pkgs)
-	structCache := cache.NewStructCache(pkgs)
-
-	// WireAnalyzerを作成
-	return NewWireAnalyzer(functionCache, structCache)
+	return pkgs
 }
 
-func TestNewWireAnalyzer(t *testing.T) {
+// setupTestAnalyzer はテスト用のAnalyzerをセットアップする
+func setupTestAnalyzer(t *testing.T, workDir string) (Analyze, []*packages.Package) {
+	t.Helper()
+
+	pkgs := loadTestPackages(t, workDir)
+	functionCache := NewFunctionCache(pkgs)
+	analysisCache := NewAnalysisCache()
+	analyzer := NewAnalyze(functionCache, analysisCache)
+
+	return analyzer, pkgs
+}
+
+// findNamedType は指定したパッケージパスと型名から *types.Named を探す
+func findNamedType(t *testing.T, pkgs []*packages.Package, pkgPath, typeName string) *types.Named {
+	t.Helper()
+
+	for _, pkg := range pkgs {
+		if pkg.PkgPath != pkgPath {
+			continue
+		}
+		obj := pkg.Types.Scope().Lookup(typeName)
+		if obj == nil {
+			continue
+		}
+		named, ok := obj.Type().(*types.Named)
+		if !ok {
+			t.Fatalf("%s in %s is not a named type", typeName, pkgPath)
+		}
+		return named
+	}
+
+	t.Fatalf("Named type %s not found in package %s", typeName, pkgPath)
+	return nil
+}
+
+func TestNewAnalyze(t *testing.T) {
 	tests := []struct {
 		name    string
 		workDir string
-		wantErr bool
 	}{
 		{
 			name:    "valid sample/basic",
 			workDir: "../../sample/basic",
-			wantErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			analyzer, err := setupTestAnalyzer(t, tt.workDir)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("setupTestAnalyzer() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !tt.wantErr && analyzer == nil {
+			analyzer, _ := setupTestAnalyzer(t, tt.workDir)
+			if analyzer == nil {
 				t.Error("setupTestAnalyzer() returned nil analyzer")
 			}
 		})
 	}
 }
 
-func TestWireAnalyzer_AnalyzeStruct(t *testing.T) {
+func TestFunctionCache_BulkGet(t *testing.T) {
 	workDir := "../../sample/basic"
+	pkgs := loadTestPackages(t, workDir)
+	functionCache := NewFunctionCache(pkgs)
 
-	analyzer, err := setupTestAnalyzer(t, workDir)
-	if err != nil {
-		t.Fatalf("Failed to create analyzer: %v", err)
+	tests := []struct {
+		name        string
+		packagePath string
+		typeName    string
+		wantFuncs   []string
+	}{
+		{
+			// NewConfig() *Config — ポインタ返し
+			name:        "get function returning *Config",
+			packagePath: "github.com/rmocchy/cire/sample/basic/repository",
+			typeName:    "Config",
+			wantFuncs:   []string{"NewConfig"},
+		},
+		{
+			// NewUserService() UserService — インターフェース返し
+			name:        "get function returning UserService",
+			packagePath: "github.com/rmocchy/cire/sample/basic/service",
+			typeName:    "UserService",
+			wantFuncs:   []string{"NewUserService"},
+		},
+		{
+			// NewUserRepository() (UserRepository, error) — インターフェース返し
+			name:        "get function returning UserRepository",
+			packagePath: "github.com/rmocchy/cire/sample/basic/repository",
+			typeName:    "UserRepository",
+			wantFuncs:   []string{"NewUserRepository"},
+		},
 	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			returnType := findNamedType(t, pkgs, tt.packagePath, tt.typeName)
+			fns := functionCache.BulkGet(returnType)
+
+			for _, wantFunc := range tt.wantFuncs {
+				found := false
+				for _, fn := range fns {
+					t.Logf("Found function: %s in %s", fn.Name(), fn.Pkg().Path())
+					if fn.Name() == wantFunc {
+						found = true
+					}
+				}
+				if !found {
+					t.Errorf("Expected function %s not found", wantFunc)
+				}
+			}
+		})
+	}
+}
+
+func TestAnalyze_ExecuteFromStruct(t *testing.T) {
+	workDir := "../../sample/basic"
+	analyzer, pkgs := setupTestAnalyzer(t, workDir)
 
 	tests := []struct {
 		name        string
 		packagePath string
 		structName  string
 		wantErr     bool
-		validate    func(*testing.T, *StructNode)
+		wantFuncs   []string
 	}{
 		{
-			name:        "analyze UserHandler",
-			packagePath: "github.com/rmocchy/cire/sample/basic/handler",
-			structName:  "UserHandler",
-			wantErr:     false,
-			validate: func(t *testing.T, node *StructNode) {
-				if node.StructName != "UserHandler" {
-					t.Errorf("Expected StructName=UserHandler, got %s", node.StructName)
-				}
-				hasInitFunc := false
-				for _, fn := range node.InitFunctions {
-					if fn.Name() == "NewUserHandler" {
-						hasInitFunc = true
-						break
-					}
-				}
-				if !hasInitFunc {
-					t.Error("Expected NewUserHandler in InitFunctions")
-				}
-				// UserHandlerはserviceフィールドを持つ
-				if len(node.Fields) == 0 {
-					t.Error("Expected at least one field")
-				}
-				// serviceフィールドがインターフェースであることを確認
-				hasServiceField := false
-				for _, field := range node.Fields {
-					if field.GetFieldName() == "service" {
-						hasServiceField = true
-						if field.NodeType() != NodeTypeInterface {
-							t.Errorf("Expected service field to be interface, got %v", field.NodeType())
-						}
-					}
-				}
-				if !hasServiceField {
-					t.Error("Expected service field in UserHandler")
-				}
-			},
-		},
-		{
-			name:        "analyze Config",
-			packagePath: "github.com/rmocchy/cire/sample/basic/repository",
-			structName:  "Config",
-			wantErr:     false,
-			validate: func(t *testing.T, node *StructNode) {
-				if node.StructName != "Config" {
-					t.Errorf("Expected StructName=Config, got %s", node.StructName)
-				}
-				hasInitFunc := false
-				for _, fn := range node.InitFunctions {
-					if fn.Name() == "NewConfig" {
-						hasInitFunc = true
-						break
-					}
-				}
-				if !hasInitFunc {
-					t.Error("Expected NewConfig in InitFunctions")
-				}
-				// Configはビルトイン型のフィールドを持つ
-				if len(node.Fields) == 0 {
-					t.Error("Expected at least one field")
-				}
-			},
-		},
-		{
-			name:        "non-existent struct",
+			name:        "analyze App struct — all providers found",
 			packagePath: "github.com/rmocchy/cire/sample/basic",
-			structName:  "NonExistentStruct",
-			wantErr:     true,
-			validate:    nil,
+			structName:  "App",
+			wantErr:     false,
+			wantFuncs:   []string{"NewUserHandler", "NewUserService", "NewUserRepository", "NewConfig"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := analyzer.AnalyzeStruct(tt.structName, core.NewPackagePath(tt.packagePath))
+			namedType := findNamedType(t, pkgs, tt.packagePath, tt.structName)
+
+			nodes, err := analyzer.ExecuteFromStruct(namedType)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("AnalyzeStruct() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("ExecuteFromStruct() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
 				return
 			}
-			if !tt.wantErr && tt.validate != nil {
-				tt.validate(t, result)
+
+			// 全ノードから名前を収集（再帰的に）
+			allNames := collectNodeNames(nodes)
+			for _, wantFunc := range tt.wantFuncs {
+				if !allNames[wantFunc] {
+					t.Errorf("Expected function %s not found in nodes: %v", wantFunc, allNames)
+				}
 			}
 		})
 	}
 }
 
-func TestIsBuiltinType(t *testing.T) {
-	tests := []struct {
-		name     string
-		typeName string
-		want     bool
-	}{
-		{"string type", "string", true},
-		{"int type", "int", true},
-		{"bool type", "bool", true},
+// collectNodeNames はノードツリーから全ての関数名を再帰的に収集する
+func collectNodeNames(nodes []*FnDITreeNode) map[string]bool {
+	names := make(map[string]bool)
+	for _, node := range nodes {
+		if node == nil {
+			continue
+		}
+		names[node.Name] = true
+		for k, v := range collectNodeNames(node.Childs) {
+			names[k] = v
+		}
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// 実際のtypes.Basicを作成してテスト
-			var typ types.Type
-			switch tt.typeName {
-			case "string":
-				typ = types.Typ[types.String]
-			case "int":
-				typ = types.Typ[types.Int]
-			case "bool":
-				typ = types.Typ[types.Bool]
-			}
-			if got := isBuiltinType(typ); got != tt.want {
-				t.Errorf("isBuiltinType(%s) = %v, want %v", tt.typeName, got, tt.want)
-			}
-		})
-	}
+	return names
 }
 
-func TestWireAnalyzer_AnalyzeStructWithNestedFields(t *testing.T) {
+func TestAnalysisCache(t *testing.T) {
 	workDir := "../../sample/basic"
+	pkgs := loadTestPackages(t, workDir)
+	cache := NewAnalysisCache()
 
-	analyzer, err := setupTestAnalyzer(t, workDir)
-	if err != nil {
-		t.Fatalf("Failed to create analyzer: %v", err)
+	namedType := findNamedType(t, pkgs, "github.com/rmocchy/cire/sample/basic/repository", "Config")
+
+	// 初期状態では空
+	_, found := cache.Get(namedType)
+	if found {
+		t.Error("Expected cache to be empty initially")
 	}
 
-	// Config構造体を解析（ビルトインフィールドを含む）
-	result, err := analyzer.AnalyzeStruct(
-		"Config",
-		core.NewPackagePath("github.com/rmocchy/cire/sample/basic/repository"),
-	)
-	if err != nil {
-		t.Fatalf("Failed to analyze Config struct: %v", err)
+	// キャッシュに追加
+	testNodes := []*FnDITreeNode{
+		{Name: "TestFunc", PkgPath: "test/path", Childs: nil},
+	}
+	cache.Set(namedType, testNodes)
+
+	// キャッシュから取得
+	result, found := cache.Get(namedType)
+	if !found {
+		t.Error("Expected cache to contain the value")
+	}
+	if len(result) != 1 {
+		t.Errorf("Expected 1 node, got %d", len(result))
+	}
+	if result[0].Name != "TestFunc" {
+		t.Errorf("Expected TestFunc, got %s", result[0].Name)
+	}
+}
+
+func TestFnDITreeNode(t *testing.T) {
+	child := &FnDITreeNode{
+		Name:    "ChildFunc",
+		PkgPath: "test/child",
+		Childs:  nil,
 	}
 
-	if result.StructName != "Config" {
-		t.Errorf("Expected StructName=Config, got %s", result.StructName)
+	parent := &FnDITreeNode{
+		Name:    "ParentFunc",
+		PkgPath: "test/parent",
+		Childs:  []*FnDITreeNode{child},
 	}
 
-	// DSNとMaxPoolSizeフィールドがビルトイン型として検出されることを確認
-	hasDSN := false
-	hasMaxPoolSize := false
-	for _, field := range result.Fields {
-		if field.GetFieldName() == "DSN" && field.NodeType() == NodeTypeBuiltin {
-			hasDSN = true
-		}
-		if field.GetFieldName() == "MaxPoolSize" && field.NodeType() == NodeTypeBuiltin {
-			hasMaxPoolSize = true
-		}
+	if parent.Name != "ParentFunc" {
+		t.Errorf("Expected ParentFunc, got %s", parent.Name)
 	}
-
-	if !hasDSN {
-		t.Error("Expected DSN field of builtin type")
+	if parent.PkgPath != "test/parent" {
+		t.Errorf("Expected test/parent, got %s", parent.PkgPath)
 	}
-	if !hasMaxPoolSize {
-		t.Error("Expected MaxPoolSize field of builtin type")
+	if len(parent.Childs) != 1 {
+		t.Errorf("Expected 1 child, got %d", len(parent.Childs))
+	}
+	if parent.Childs[0].Name != "ChildFunc" {
+		t.Errorf("Expected ChildFunc, got %s", parent.Childs[0].Name)
 	}
 }

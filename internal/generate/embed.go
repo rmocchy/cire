@@ -1,4 +1,4 @@
-package wiregenerate
+package generate
 
 import (
 	_ "embed"

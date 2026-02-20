@@ -1,14 +1,7 @@
 package cmd
 
 import (
-	"fmt"
-	"path/filepath"
-
-	"github.com/rmocchy/cire/internal/analyze"
-	pipe "github.com/rmocchy/cire/internal/analyze"
-	"github.com/rmocchy/cire/internal/load"
-	wiregenerate "github.com/rmocchy/cire/internal/wire_generate"
-	"github.com/rmocchy/cire/internal/yaml"
+	"github.com/rmocchy/cire/internal/app"
 	"github.com/spf13/cobra"
 )
 
@@ -37,58 +30,9 @@ func init() {
 }
 
 func runGenerate(cmd *cobra.Command, args []string) error {
-	targetStructs, err := load.FindAnnotatedStructs(filePath)
-	if err != nil {
-		return err
+	input := app.GenerateInput{
+		FilePath: filePath,
+		GenJson:  generateYAML,
 	}
-
-	// パッケージパスを解決
-	pkgPath, err := load.ResolvePackagePath(filePath)
-	if err != nil {
-		return err
-	}
-
-	// パッケージのロード
-	loader, err := load.LoadPackagesFromFile(filePath)
-	if err != nil {
-		return err
-	}
-
-	// 各アノテーション付き構造体を解析
-	results := make([]*analyze.StructNode, 0, len(targetStructs))
-	for _, structName := range targetStructs {
-		// アナライザの作成
-		analyzer, err := pipe.NewWireAnalyzer(loader.FunctionCache, loader.StructCache)
-		if err != nil {
-			return fmt.Errorf("failed to create analyzer: %w", err)
-		}
-
-		// 構造体の解析
-		result, err := analyzer.AnalyzeStruct(structName, *pkgPath)
-		if err != nil {
-			return fmt.Errorf("failed to analyze struct %s: %w", structName, err)
-		}
-
-		results = append(results, result)
-	}
-
-	// YAMLフラグが指定されている場合のみYAML生成
-	if generateYAML {
-		// 入力ファイルと同じディレクトリにYAMLファイルを出力
-		dir := filepath.Dir(filePath)
-		outputPath := filepath.Join(dir, "cire.yaml")
-
-		if err := yaml.OutputMultipleToYAML(results, outputPath); err != nil {
-			return err
-		}
-
-		fmt.Printf("YAML file generated: %s\n", outputPath)
-	}
-
-	// wire.go ファイルの生成
-	if err := wiregenerate.GenerateWireFile(results, filePath); err != nil {
-		return fmt.Errorf("failed to generate wire.go: %w", err)
-	}
-
-	return nil
+	return app.RunGenerate(&input)
 }

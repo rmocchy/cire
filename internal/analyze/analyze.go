@@ -1,106 +1,83 @@
 package analyze
 
 import (
-	"fmt"
+	"errors"
 	"go/types"
-
-	"github.com/rmocchy/cire/internal/core"
 )
 
-// wireAnalyzer はwire.goの解析を行う（internal/coreを使用）
-type wireAnalyzer struct {
-	analyzed      map[string]*StructNode // 解析済みの構造体をキャッシュ（無限ループ防止）
-	functionCache core.FunctionCache     // 関数キャッシュ
-	structCache   core.StructCache       // 構造体キャッシュ
-	fieldAnalyzer FieldAnalyzer          // フィールド解析器
+type Analyze interface {
+	ExecuteFromStruct(structure *types.Named) ([]*FnDITreeNode, error)
 }
 
-// NewWireAnalyzer は新しいStructAnalyzerを作成する
-func NewWireAnalyzer(
-	functionCache core.FunctionCache,
-	structCache core.StructCache,
-) (StructAnalyzer, error) {
-	wa := &wireAnalyzer{
-		analyzed:      make(map[string]*StructNode),
+func NewAnalyze(
+	functionCache FunctionCache,
+	analysisCache AnalysisCache,
+) Analyze {
+	return &analyze{
 		functionCache: functionCache,
-		structCache:   structCache,
+		analysisCache: analysisCache,
 	}
-
-	// 循環依存を避けるため、FieldAnalyzerの初期化はWireAnalyzerの初期化後に行う
-	wa.fieldAnalyzer = NewFieldAnalyzer(functionCache, wa)
-
-	return wa, nil
 }
 
-// AnalyzeStruct は構造体を解析する（エントリーポイント）
-// packagePath: 構造体のパッケージパス（空文字列の場合は全パッケージから検索）
-// structName: 構造体名
-func (wa *wireAnalyzer) AnalyzeStruct(structName string, packagePath core.PackagePath) (*StructNode, error) {
-	// 対象の構造体型を検索
-	structType, ok := wa.structCache.Get(structName, packagePath)
+type analyze struct {
+	functionCache FunctionCache
+	analysisCache AnalysisCache
+}
+
+func (a *analyze) ExecuteFromStruct(structure *types.Named) ([]*FnDITreeNode, error) {
+	st, ok := structure.Underlying().(*types.Struct)
 	if !ok {
-		return nil, fmt.Errorf("struct %s not found", structName)
+		return nil, errors.New("not a struct type")
 	}
-
-	return wa.AnalyzeNamedStructType(structName, packagePath, structType)
-}
-
-// AnalyzeNamedStructType は構造体型を解析する
-func (wa *wireAnalyzer) AnalyzeNamedStructType(structName string, packagePath core.PackagePath, structType *types.Struct) (*StructNode, error) {
-	cacheKey := packagePath.String() + "." + structName
-
-	// 既に解析済みの場合はキャッシュから返す
-	if cached, ok := wa.analyzed[cacheKey]; ok {
-		return cached, nil
-	}
-
-	// 初期化関数を探す
-	fns := wa.functionCache.BulkGetByStructResult(structType)
-
-	result := &StructNode{
-		StructName:    structName,
-		PackagePath:   packagePath.String(),
-		InitFunctions: fns,
-		Fields:        make([]FieldNode, 0),
-		Dependencies:  make([]FieldNode, 0),
-	}
-
-	// キャッシュに登録（無限ループ防止のため、フィールド解析前に登録）
-	wa.analyzed[cacheKey] = result
-
-	// 初期化関数の引数を解析してDependenciesに追加
-	deps := wa.analyzeDependencies(fns)
-	result.Dependencies = append(result.Dependencies, deps...)
-
-	// 各フィールドを解析
-	for i := 0; i < structType.NumFields(); i++ {
-		field := structType.Field(i)
-		if node := wa.fieldAnalyzer.AnalyzeTypeToFieldNode(field.Name(), field.Type()); node != nil {
-			result.Fields = append(result.Fields, node)
-		}
-	}
-
-	return result, nil
-}
-
-// analyzeDependencies は初期化関数の依存関係を解析する
-func (wa *wireAnalyzer) analyzeDependencies(fns []*types.Func) []FieldNode {
-	deps := make([]FieldNode, 0)
-
-	for _, fn := range fns {
-		sig := fn.Signature()
-		params := sig.Params()
-		if params == nil {
+	var allNodes []*FnDITreeNode
+	for i := 0; i < st.NumFields(); i++ {
+		fieldType, ok := Deref(st.Field(i).Type()).(*types.Named)
+		if !ok {
 			continue
 		}
-
-		for i := 0; i < params.Len(); i++ {
-			param := params.At(i)
-			if node := wa.fieldAnalyzer.AnalyzeTypeToFieldNode(param.Name(), param.Type()); node != nil {
-				deps = append(deps, node)
-			}
+		nodes, err := a.recursiveAnalyze(fieldType)
+		if err != nil {
+			return nil, err
 		}
+		allNodes = append(allNodes, nodes...)
+	}
+	return allNodes, nil
+}
+
+func (a *analyze) recursiveAnalyze(retrunType *types.Named) ([]*FnDITreeNode, error) {
+	cached, ok := a.analysisCache.Get(retrunType)
+	if ok {
+		return cached, nil
+	}
+	fns := a.functionCache.BulkGet(retrunType)
+	if len(fns) == 0 {
+		return nil, errors.New("no function found with the specified return type")
 	}
 
-	return deps
+	treeNodes := make([]*FnDITreeNode, 0, len(fns))
+	for _, fn := range fns {
+		childs := make([]*FnDITreeNode, 0)
+		params := fn.Signature().Params()
+		for i := 0; i < params.Len(); i++ {
+			paramType := Deref(params.At(i).Type())
+			named, ok := paramType.(*types.Named)
+			if !ok {
+				continue
+			}
+			dependFns, err := a.recursiveAnalyze(named)
+			if err != nil {
+				return nil, err
+			}
+			childs = append(childs, dependFns...)
+		}
+		node := FnDITreeNode{
+			Name:    fn.Name(),
+			PkgPath: fn.Pkg().Path(),
+			Childs:  childs,
+		}
+
+		treeNodes = append(treeNodes, &node)
+	}
+
+	return treeNodes, nil
 }
