@@ -7,7 +7,7 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-// テスト用のヘルパー関数: パッケージをロードする
+// loadTestPackages はテスト用のパッケージをロードする
 func loadTestPackages(t *testing.T, workDir string) []*packages.Package {
 	t.Helper()
 
@@ -23,7 +23,6 @@ func loadTestPackages(t *testing.T, workDir string) []*packages.Package {
 		t.Fatalf("Failed to load packages: %v", err)
 	}
 
-	// エラーチェック
 	for _, pkg := range pkgs {
 		if len(pkg.Errors) > 0 {
 			t.Fatalf("Package error: %v", pkg.Errors[0])
@@ -38,44 +37,33 @@ func setupTestAnalyzer(t *testing.T, workDir string) (Analyze, []*packages.Packa
 	t.Helper()
 
 	pkgs := loadTestPackages(t, workDir)
-
 	functionCache := NewFunctionCache(pkgs)
 	analysisCache := NewAnalysisCache()
-
 	analyzer := NewAnalyze(functionCache, analysisCache)
 
 	return analyzer, pkgs
 }
 
-// findStructType は指定したパッケージパスと構造体名から types.Struct を探す
-func findStructType(t *testing.T, pkgs []*packages.Package, pkgPath, structName string) *types.Struct {
+// findNamedType は指定したパッケージパスと型名から *types.Named を探す
+func findNamedType(t *testing.T, pkgs []*packages.Package, pkgPath, typeName string) *types.Named {
 	t.Helper()
 
 	for _, pkg := range pkgs {
 		if pkg.PkgPath != pkgPath {
 			continue
 		}
-
-		scope := pkg.Types.Scope()
-		obj := scope.Lookup(structName)
+		obj := pkg.Types.Scope().Lookup(typeName)
 		if obj == nil {
 			continue
 		}
-
 		named, ok := obj.Type().(*types.Named)
 		if !ok {
-			continue
+			t.Fatalf("%s in %s is not a named type", typeName, pkgPath)
 		}
-
-		structType, ok := named.Underlying().(*types.Struct)
-		if !ok {
-			continue
-		}
-
-		return structType
+		return named
 	}
 
-	t.Fatalf("Struct %s not found in package %s", structName, pkgPath)
+	t.Fatalf("Named type %s not found in package %s", typeName, pkgPath)
 	return nil
 }
 
@@ -83,12 +71,10 @@ func TestNewAnalyze(t *testing.T) {
 	tests := []struct {
 		name    string
 		workDir string
-		wantErr bool
 	}{
 		{
 			name:    "valid sample/basic",
 			workDir: "../../sample/basic",
-			wantErr: false,
 		},
 	}
 
@@ -102,116 +88,6 @@ func TestNewAnalyze(t *testing.T) {
 	}
 }
 
-func TestAnalyze_ExecuteFromStruct(t *testing.T) {
-	workDir := "../../sample/basic"
-	_, pkgs := setupTestAnalyzer(t, workDir)
-
-	tests := []struct {
-		name        string
-		packagePath string
-		structName  string
-		wantErr     bool
-		validate    func(*testing.T, []*FnDITreeNode)
-	}{
-		{
-			name:        "analyze *Config (pointer to Config)",
-			packagePath: "github.com/rmocchy/cire/sample/basic/repository",
-			structName:  "Config",
-			wantErr:     false,
-			validate: func(t *testing.T, nodes []*FnDITreeNode) {
-				// NewConfig が含まれているか確認（nilでないノードのみチェック）
-				hasNewConfig := false
-				for _, node := range nodes {
-					if node != nil && node.Name == "NewConfig" {
-						hasNewConfig = true
-						break
-					}
-				}
-				if !hasNewConfig {
-					t.Error("Expected NewConfig in nodes")
-				}
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Named type を探す（ポインタ型として *Config を検索）
-			var returnType types.Type
-			for _, pkg := range pkgs {
-				if pkg.PkgPath != tt.packagePath {
-					continue
-				}
-				scope := pkg.Types.Scope()
-				obj := scope.Lookup(tt.structName)
-				if obj != nil {
-					// ポインタ型として取得 (*Config)
-					returnType = types.NewPointer(obj.Type())
-					break
-				}
-			}
-
-			if returnType == nil {
-				t.Fatalf("Return type for %s not found", tt.structName)
-			}
-
-			// ExecuteFromStruct の現在の実装では types.Struct を受け取るが、
-			// 内部で *types.Named を期待している。
-			// この不整合をテストで確認する。
-			// 注: 現在のコードには問題があり、types.Struct は *types.Named にキャストできない
-			t.Log("Note: ExecuteFromStruct expects types.Struct but recursiveAnalyze expects *types.Named")
-			t.Log("This test documents the current behavior")
-
-			// 直接 recursiveAnalyze をテストするために、リフレクションを使用するか、
-			// テスト用のインターフェースを追加する必要がある
-			// ここでは FunctionCache.BulkGet を直接テストする
-		})
-	}
-}
-
-// TestRecursiveAnalyzeWithNamedType は Named 型を使った再帰解析をテストする
-// 注: analyze.recursiveAnalyze は非公開メソッドなので直接テストできない
-// 代わりに、FunctionCache と AnalysisCache の統合テストを行う
-func TestIntegrationWithFunctionCache(t *testing.T) {
-	workDir := "../../sample/basic"
-	pkgs := loadTestPackages(t, workDir)
-	functionCache := NewFunctionCache(pkgs)
-
-	// *Config を返す関数を検索
-	var configPtrType types.Type
-	for _, pkg := range pkgs {
-		if pkg.PkgPath == "github.com/rmocchy/cire/sample/basic/repository" {
-			scope := pkg.Types.Scope()
-			obj := scope.Lookup("Config")
-			if obj != nil {
-				configPtrType = types.NewPointer(obj.Type())
-				break
-			}
-		}
-	}
-
-	if configPtrType == nil {
-		t.Fatal("*Config type not found")
-	}
-
-	fns := functionCache.BulkGet(configPtrType)
-	if len(fns) == 0 {
-		t.Error("Expected at least one function returning *Config")
-	}
-
-	// NewConfig が見つかることを確認
-	hasNewConfig := false
-	for _, fn := range fns {
-		t.Logf("Found function: %s in package %s", fn.Name(), fn.Pkg().Path())
-		if fn.Name() == "NewConfig" {
-			hasNewConfig = true
-		}
-	}
-	if !hasNewConfig {
-		t.Error("Expected NewConfig function")
-	}
-}
-
 func TestFunctionCache_BulkGet(t *testing.T) {
 	workDir := "../../sample/basic"
 	pkgs := loadTestPackages(t, workDir)
@@ -220,47 +96,43 @@ func TestFunctionCache_BulkGet(t *testing.T) {
 	tests := []struct {
 		name        string
 		packagePath string
-		structName  string
+		typeName    string
 		wantFuncs   []string
 	}{
 		{
-			name:        "get functions returning *Config",
+			// NewConfig() *Config — ポインタ返し
+			name:        "get function returning *Config",
 			packagePath: "github.com/rmocchy/cire/sample/basic/repository",
-			structName:  "Config",
+			typeName:    "Config",
 			wantFuncs:   []string{"NewConfig"},
+		},
+		{
+			// NewUserService() UserService — インターフェース返し
+			name:        "get function returning UserService",
+			packagePath: "github.com/rmocchy/cire/sample/basic/service",
+			typeName:    "UserService",
+			wantFuncs:   []string{"NewUserService"},
+		},
+		{
+			// NewUserRepository() (UserRepository, error) — インターフェース返し
+			name:        "get function returning UserRepository",
+			packagePath: "github.com/rmocchy/cire/sample/basic/repository",
+			typeName:    "UserRepository",
+			wantFuncs:   []string{"NewUserRepository"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Named type を探す
-			var returnType types.Type
-			for _, pkg := range pkgs {
-				if pkg.PkgPath != tt.packagePath {
-					continue
-				}
-				scope := pkg.Types.Scope()
-				obj := scope.Lookup(tt.structName)
-				if obj != nil {
-					// ポインタ型として取得
-					returnType = types.NewPointer(obj.Type())
-					break
-				}
-			}
-
-			if returnType == nil {
-				t.Fatalf("Return type for %s not found", tt.structName)
-			}
-
+			returnType := findNamedType(t, pkgs, tt.packagePath, tt.typeName)
 			fns := functionCache.BulkGet(returnType)
 
-			// 期待される関数が含まれているか確認
 			for _, wantFunc := range tt.wantFuncs {
 				found := false
 				for _, fn := range fns {
+					t.Logf("Found function: %s in %s", fn.Name(), fn.Pkg().Path())
 					if fn.Name() == wantFunc {
 						found = true
-						break
 					}
 				}
 				if !found {
@@ -271,27 +143,70 @@ func TestFunctionCache_BulkGet(t *testing.T) {
 	}
 }
 
+func TestAnalyze_ExecuteFromStruct(t *testing.T) {
+	workDir := "../../sample/basic"
+	analyzer, pkgs := setupTestAnalyzer(t, workDir)
+
+	tests := []struct {
+		name        string
+		packagePath string
+		structName  string
+		wantErr     bool
+		wantFuncs   []string
+	}{
+		{
+			name:        "analyze App struct — all providers found",
+			packagePath: "github.com/rmocchy/cire/sample/basic",
+			structName:  "App",
+			wantErr:     false,
+			wantFuncs:   []string{"NewUserHandler", "NewUserService", "NewUserRepository", "NewConfig"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			namedType := findNamedType(t, pkgs, tt.packagePath, tt.structName)
+
+			nodes, err := analyzer.ExecuteFromStruct(namedType)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("ExecuteFromStruct() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
+			}
+
+			// 全ノードから名前を収集（再帰的に）
+			allNames := collectNodeNames(nodes)
+			for _, wantFunc := range tt.wantFuncs {
+				if !allNames[wantFunc] {
+					t.Errorf("Expected function %s not found in nodes: %v", wantFunc, allNames)
+				}
+			}
+		})
+	}
+}
+
+// collectNodeNames はノードツリーから全ての関数名を再帰的に収集する
+func collectNodeNames(nodes []*FnDITreeNode) map[string]bool {
+	names := make(map[string]bool)
+	for _, node := range nodes {
+		if node == nil {
+			continue
+		}
+		names[node.Name] = true
+		for k, v := range collectNodeNames(node.Childs) {
+			names[k] = v
+		}
+	}
+	return names
+}
+
 func TestAnalysisCache(t *testing.T) {
 	workDir := "../../sample/basic"
 	pkgs := loadTestPackages(t, workDir)
 	cache := NewAnalysisCache()
 
-	// Named type を探す
-	var namedType *types.Named
-	for _, pkg := range pkgs {
-		if pkg.PkgPath == "github.com/rmocchy/cire/sample/basic/repository" {
-			scope := pkg.Types.Scope()
-			obj := scope.Lookup("Config")
-			if obj != nil {
-				namedType = obj.Type().(*types.Named)
-				break
-			}
-		}
-	}
-
-	if namedType == nil {
-		t.Fatal("Named type for Config not found")
-	}
+	namedType := findNamedType(t, pkgs, "github.com/rmocchy/cire/sample/basic/repository", "Config")
 
 	// 初期状態では空
 	_, found := cache.Get(namedType)
@@ -319,7 +234,6 @@ func TestAnalysisCache(t *testing.T) {
 }
 
 func TestFnDITreeNode(t *testing.T) {
-	// FnDITreeNode の構造テスト
 	child := &FnDITreeNode{
 		Name:    "ChildFunc",
 		PkgPath: "test/child",

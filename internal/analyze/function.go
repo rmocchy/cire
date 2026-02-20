@@ -38,7 +38,7 @@ func (fc *functionCache) BulkGet(returnType *types.Named) []*types.Func {
 	for _, fn := range fc.fns {
 		ret := fn.Signature().Results()
 		for i := 0; i < ret.Len(); i++ {
-			paramType := ret.At(i).Type()
+			paramType := Deref(ret.At(i).Type())
 
 			if types.Identical(paramType, returnType) {
 				result = append(result, fn)
