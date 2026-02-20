@@ -11,7 +11,7 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-func LoadStructs(path string, pkgs []*packages.Package) ([]*types.Struct, error) {
+func LoadNamedStructs(path string, pkgs []*packages.Package) ([]*types.Named, error) {
 	structNames, err := getStructNames(path)
 	if err != nil {
 		return nil, err
@@ -21,20 +21,24 @@ func LoadStructs(path string, pkgs []*packages.Package) ([]*types.Struct, error)
 		return nil, err
 	}
 
-	structs := make([]*types.Struct, 0)
+	namedStructs := make([]*types.Named, 0)
 	for _, p := range pkgs {
 		if p.PkgPath != *pkgPath {
 			continue
 		}
 		for _, name := range structNames {
-			underLied := p.Types.Scope().Lookup(name).Type().Underlying()
-			if st, ok := underLied.(*types.Struct); ok {
-				structs = append(structs, st)
+			obj := p.Types.Scope().Lookup(name)
+			named, ok := obj.Type().(*types.Named)
+			if !ok {
+				continue
+			}
+			if _, ok := named.Underlying().(*types.Struct); ok {
+				namedStructs = append(namedStructs, named)
 			}
 		}
 	}
 
-	return structs, nil
+	return namedStructs, nil
 }
 
 func getStructNames(path string) ([]string, error) {

@@ -24,7 +24,7 @@ func RunGenerate(input *GenerateInput) error {
 		return err
 	}
 
-	structs, err := file.LoadStructs(input.FilePath, pkgs)
+	structs, err := file.LoadNamedStructs(input.FilePath, pkgs)
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func RunGenerate(input *GenerateInput) error {
 
 	// 構造体ごとに解析実行
 	for _, s := range structs {
-		trees, err := analyzer.ExecuteFromStruct(*s)
+		trees, err := analyzer.ExecuteFromStruct(s)
 		if err != nil {
 			return err
 		}

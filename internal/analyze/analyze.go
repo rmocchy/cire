@@ -6,7 +6,7 @@ import (
 )
 
 type Analyze interface {
-	ExecuteFromStruct(structure types.Struct) ([]*FnDITreeNode, error)
+	ExecuteFromStruct(structure *types.Named) ([]*FnDITreeNode, error)
 }
 
 func NewAnalyze(
@@ -24,21 +24,17 @@ type analyze struct {
 	analysisCache AnalysisCache
 }
 
-func (a *analyze) ExecuteFromStruct(structure types.Struct) ([]*FnDITreeNode, error) {
-	return a.recursiveAnalyze(&structure)
+func (a *analyze) ExecuteFromStruct(structure *types.Named) ([]*FnDITreeNode, error) {
+	return a.recursiveAnalyze(structure)
 }
 
-func (a *analyze) recursiveAnalyze(retrunType types.Type) ([]*FnDITreeNode, error) {
-	named, ok := retrunType.(*types.Named)
-	if !ok {
-		return nil, errors.New("return type is not a named type")
-	}
-	cached, ok := a.analysisCache.Get(named)
+func (a *analyze) recursiveAnalyze(retrunType *types.Named) ([]*FnDITreeNode, error) {
+	cached, ok := a.analysisCache.Get(retrunType)
 	if ok {
 		return cached, nil
 	}
 
-	underLied := named.Underlying()
+	underLied := retrunType.Underlying()
 	fns := a.functionCache.BulkGet(underLied)
 	if len(fns) == 0 {
 		return nil, errors.New("no function found with the specified return type")
@@ -50,7 +46,11 @@ func (a *analyze) recursiveAnalyze(retrunType types.Type) ([]*FnDITreeNode, erro
 		params := fn.Signature().Params()
 		for i := 0; i < params.Len(); i++ {
 			paramType := params.At(i).Type()
-			dependFns, err := a.recursiveAnalyze(paramType)
+			named, ok := paramType.(*types.Named)
+			if !ok {
+				continue
+			}
+			dependFns, err := a.recursiveAnalyze(named)
 			if err != nil {
 				return nil, err
 			}
