@@ -38,7 +38,8 @@ func (a *analyze) recursiveAnalyze(retrunType types.Type) ([]*FnDITreeNode, erro
 		return cached, nil
 	}
 
-	fns := a.functionCache.BulkGet(retrunType)
+	underLied := named.Underlying()
+	fns := a.functionCache.BulkGet(underLied)
 	if len(fns) == 0 {
 		return nil, errors.New("no function found with the specified return type")
 	}
@@ -63,7 +64,6 @@ func (a *analyze) recursiveAnalyze(retrunType types.Type) ([]*FnDITreeNode, erro
 
 		treeNodes = append(treeNodes, &node)
 	}
-	a.analysisCache.Set(named, treeNodes)
 
 	return treeNodes, nil
 }
