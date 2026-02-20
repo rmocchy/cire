@@ -11,20 +11,20 @@ import (
 )
 
 type GenerateInput struct {
-	filePath string
-	genJson  bool
+	FilePath string
+	GenJson  bool
 }
 
-func runGenerate(input *GenerateInput) error {
-	dir := filepath.Dir(input.filePath)
+func RunGenerate(input *GenerateInput) error {
+	dir := filepath.Dir(input.FilePath)
 	outputPath := filepath.Join(dir, "wire.go")
 
-	pkgs, err := file.LoadAllPkgsFromPath(input.filePath)
+	pkgs, err := file.LoadAllPkgsFromPath(input.FilePath)
 	if err != nil {
 		return err
 	}
 
-	structs, err := file.LoadStructs(input.filePath, pkgs)
+	structs, err := file.LoadStructs(input.FilePath, pkgs)
 	if err != nil {
 		return err
 	}
@@ -36,7 +36,7 @@ func runGenerate(input *GenerateInput) error {
 
 	// コード生成の準備
 	config := &generate.GenerateConfig{}
-	usePkgName, err := file.ResolvePackagePath(input.filePath)
+	usePkgName, err := file.ResolvePackagePath(input.FilePath)
 	if err != nil {
 		return err
 	}
