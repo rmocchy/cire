@@ -51,7 +51,7 @@ func (a *analyze) recursiveAnalyze(retrunType *types.Named) ([]*FnDITreeNode, er
 	}
 	fns := a.functionCache.BulkGet(retrunType)
 	if len(fns) == 0 {
-		return nil, errors.New("no function found with the specified return type")
+		return nil, errors.New("no function found with the specified return type: " + retrunType.String())
 	}
 
 	treeNodes := make([]*FnDITreeNode, 0, len(fns))
