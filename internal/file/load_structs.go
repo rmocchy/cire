@@ -2,9 +2,6 @@ package file
 
 import (
 	"fmt"
-	"go/ast"
-	"go/parser"
-	"go/token"
 	"go/types"
 	"path/filepath"
 
@@ -12,10 +9,6 @@ import (
 )
 
 func LoadNamedStructs(path string, pkgs []*packages.Package) ([]*types.Named, error) {
-	structNames, err := getStructNames(path)
-	if err != nil {
-		return nil, err
-	}
 	pkgPath, err := resolvePackagePath(path)
 	if err != nil {
 		return nil, err
@@ -26,7 +19,7 @@ func LoadNamedStructs(path string, pkgs []*packages.Package) ([]*types.Named, er
 		if p.PkgPath != *pkgPath {
 			continue
 		}
-		for _, name := range structNames {
+		for _, name := range p.Types.Scope().Names() {
 			obj := p.Types.Scope().Lookup(name)
 			named, ok := obj.Type().(*types.Named)
 			if !ok {
@@ -39,46 +32,6 @@ func LoadNamedStructs(path string, pkgs []*packages.Package) ([]*types.Named, er
 	}
 
 	return namedStructs, nil
-}
-
-func getStructNames(path string) ([]string, error) {
-	fset := token.NewFileSet()
-	node, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse file: %w", err)
-	}
-
-	results := make([]string, 0)
-
-	ast.Inspect(node, func(n ast.Node) bool {
-		genDecl, ok := n.(*ast.GenDecl)
-		if !ok || genDecl.Tok != token.TYPE {
-			return true
-		}
-
-		for _, spec := range genDecl.Specs {
-			typeSpec, ok := spec.(*ast.TypeSpec)
-			if !ok {
-				continue
-			}
-
-			// 構造体のみ対象
-			if _, ok := typeSpec.Type.(*ast.StructType); !ok {
-				continue
-			}
-
-			// すべての構造体を追加
-			results = append(results, typeSpec.Name.Name)
-		}
-
-		return true
-	})
-
-	if len(results) == 0 {
-		return nil, fmt.Errorf("no structs found in %s", path)
-	}
-
-	return results, nil
 }
 
 func resolvePackagePath(filePath string) (*string, error) {
