@@ -7,7 +7,7 @@ import (
 )
 
 type FunctionCache interface {
-	BulkGet(returnType types.Type) []*types.Func
+	BulkGet(returnType *types.Named) []*types.Func
 }
 
 type functionCache struct {
@@ -32,7 +32,7 @@ func NewFunctionCache(pkgs []*packages.Package) FunctionCache {
 	return &functionCache{fns: fns}
 }
 
-func (fc *functionCache) BulkGet(returnType types.Type) []*types.Func {
+func (fc *functionCache) BulkGet(returnType *types.Named) []*types.Func {
 	// キャッシュから指定された返り値の型を持つ関数を取得
 	result := make([]*types.Func, 0)
 	for _, fn := range fc.fns {

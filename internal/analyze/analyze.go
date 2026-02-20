@@ -33,14 +33,12 @@ func (a *analyze) recursiveAnalyze(retrunType *types.Named) ([]*FnDITreeNode, er
 	if ok {
 		return cached, nil
 	}
-
-	underLied := retrunType.Underlying()
-	fns := a.functionCache.BulkGet(underLied)
+	fns := a.functionCache.BulkGet(retrunType)
 	if len(fns) == 0 {
 		return nil, errors.New("no function found with the specified return type")
 	}
 
-	treeNodes := make([]*FnDITreeNode, 9, len(fns))
+	treeNodes := make([]*FnDITreeNode, 0, len(fns))
 	for _, fn := range fns {
 		childs := make([]*FnDITreeNode, 0)
 		params := fn.Signature().Params()
