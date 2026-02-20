@@ -57,7 +57,7 @@ func RunGenerate(input *GenerateInput) error {
 		for _, node := range converter.List() {
 			providers = append(providers, generate.Provider{
 				PkgPath: node.PkgPath,
-				Name:    node.Name,
+				Name:    fmt.Sprintf("%s.%s", file.PkgNameFromPath(node.PkgPath), node.Name),
 			})
 		}
 		config.AddStructSet(s.Obj().Name(), providers)
