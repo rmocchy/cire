@@ -1,14 +1,14 @@
 poc
 
-sample/basic/App_di_tree.json
+sample/basic/dep_tree.json
 sample/basic/wire.go
 sample/basic/wire_gen.go
 
-
 sample/complex/wire.go
 sample/complex/wire_gen.go
+sample/complex/dep_tree.json
 
-sample/duplicate/App_di_tree.json
+sample/duplicate/dep_tree.json
 
 
 cire
