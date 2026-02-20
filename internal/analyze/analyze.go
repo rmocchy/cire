@@ -25,7 +25,23 @@ type analyze struct {
 }
 
 func (a *analyze) ExecuteFromStruct(structure *types.Named) ([]*FnDITreeNode, error) {
-	return a.recursiveAnalyze(structure)
+	st, ok := structure.Underlying().(*types.Struct)
+	if !ok {
+		return nil, errors.New("not a struct type")
+	}
+	var allNodes []*FnDITreeNode
+	for i := 0; i < st.NumFields(); i++ {
+		fieldType, ok := Deref(st.Field(i).Type()).(*types.Named)
+		if !ok {
+			continue
+		}
+		nodes, err := a.recursiveAnalyze(fieldType)
+		if err != nil {
+			return nil, err
+		}
+		allNodes = append(allNodes, nodes...)
+	}
+	return allNodes, nil
 }
 
 func (a *analyze) recursiveAnalyze(retrunType *types.Named) ([]*FnDITreeNode, error) {

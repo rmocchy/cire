@@ -2,28 +2,32 @@ package analyze
 
 import "go/types"
 
-type ConvertTreeToUniqueList struct {
-	Visited map[string]bool
-	List    []*FnDITreeNode
+type convertTreeToUniqueList struct {
+	visited map[string]bool
+	list    []*FnDITreeNode
 }
 
-func NewConvertTreeToUniqueList() *ConvertTreeToUniqueList {
-	return &ConvertTreeToUniqueList{
-		Visited: make(map[string]bool),
-		List:    []*FnDITreeNode{},
+func NewConvertTreeToUniqueList() *convertTreeToUniqueList {
+	return &convertTreeToUniqueList{
+		visited: make(map[string]bool),
+		list:    []*FnDITreeNode{},
 	}
 }
 
-func (c *ConvertTreeToUniqueList) Execute(node *FnDITreeNode) {
+func (c *convertTreeToUniqueList) Execute(node *FnDITreeNode) {
 	key := node.PkgPath + "." + node.Name
-	if c.Visited[key] {
+	if c.visited[key] {
 		return
 	}
-	c.Visited[key] = true
-	c.List = append(c.List, node)
+	c.visited[key] = true
+	c.list = append(c.list, node)
 	for _, child := range node.Childs {
 		c.Execute(child)
 	}
+}
+
+func (c *convertTreeToUniqueList) List() []*FnDITreeNode {
+	return c.list
 }
 
 // Deref は、ポインタ型の場合はその要素の型を返し、そうでない場合はそのままの型を返す

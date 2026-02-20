@@ -36,7 +36,7 @@ func RunGenerate(input *GenerateInput) error {
 
 	// コード生成の準備
 	config := &generate.GenerateConfig{}
-	usePkgName, err := file.ResolvePackagePath(input.FilePath)
+	usePkgName, err := file.ExtractPackageName(input.FilePath)
 	if err != nil {
 		return err
 	}
@@ -48,19 +48,19 @@ func RunGenerate(input *GenerateInput) error {
 		if err != nil {
 			return err
 		}
-		converter := analyze.ConvertTreeToUniqueList{}
+		converter := analyze.NewConvertTreeToUniqueList()
 		for _, tree := range trees {
 			converter.Execute(tree)
 		}
 
-		providers := make([]generate.Provider, 0, len(converter.List))
-		for _, node := range converter.List {
+		providers := make([]generate.Provider, 0, len(converter.List()))
+		for _, node := range converter.List() {
 			providers = append(providers, generate.Provider{
 				PkgPath: node.PkgPath,
 				Name:    node.Name,
 			})
 		}
-		config.AddStructSet(s.String(), providers)
+		config.AddStructSet(s.Obj().Name(), providers)
 	}
 
 	// コード生成
