@@ -2,12 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/rmocchy/cire/internal/analyze"
 	pipe "github.com/rmocchy/cire/internal/analyze"
 	"github.com/rmocchy/cire/internal/load"
-	wiregenerate "github.com/rmocchy/cire/internal/wire_generate"
 	"github.com/rmocchy/cire/internal/yaml"
 	"github.com/spf13/cobra"
 )
@@ -86,9 +86,12 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	}
 
 	// wire.go ファイルの生成
-	if err := wiregenerate.GenerateWireFile(results, filePath); err != nil {
-		return fmt.Errorf("failed to generate wire.go: %w", err)
+	if err := os.WriteFile(outputPath, formatted, 0644); err != nil {
+		return fmt.Errorf("failed to write wire.go: %w", err)
 	}
+
+	fmt.Printf("Wire file generated: %s\n", outputPath)
+	return nil
 
 	return nil
 }
