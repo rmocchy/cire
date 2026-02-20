@@ -48,6 +48,8 @@ func RunGenerate(input *GenerateInput) error {
 		if err != nil {
 			return err
 		}
+		// TODO: 異なる関数による同じ構造体の依存解決があった場合,
+		// 依存マッピングをjsonで出力の上でエラーにする
 		converter := analyze.NewConvertTreeToUniqueList()
 		for _, tree := range trees {
 			converter.Execute(tree)
