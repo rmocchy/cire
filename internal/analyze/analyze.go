@@ -43,7 +43,7 @@ func (a *analyze) recursiveAnalyze(retrunType *types.Named) ([]*FnDITreeNode, er
 		childs := make([]*FnDITreeNode, 0)
 		params := fn.Signature().Params()
 		for i := 0; i < params.Len(); i++ {
-			paramType := params.At(i).Type()
+			paramType := Deref(params.At(i).Type())
 			named, ok := paramType.(*types.Named)
 			if !ok {
 				continue
