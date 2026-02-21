@@ -9,6 +9,10 @@ import (
 )
 
 func LoadNamedStructs(path string, pkgs []*packages.Package) ([]*types.Named, error) {
+	fileName := filepath.Base(path)
+	if fileName == "" {
+		return nil, fmt.Errorf("invalid file path: %s", path)
+	}
 	pkgPath, err := resolvePackagePath(path)
 	if err != nil {
 		return nil, err
@@ -21,14 +25,17 @@ func LoadNamedStructs(path string, pkgs []*packages.Package) ([]*types.Named, er
 		}
 		for _, name := range p.Types.Scope().Names() {
 			obj := p.Types.Scope().Lookup(name)
-			// 型宣言（TypeName）のみを対象とする。変数（Var）はその型が外部パッケージの
-			// 構造体であっても解析対象に含めない（例: var AppSet = wire.NewSet(...) が
-			// wire.ProviderSet として混入するのを防ぐ）
 			if _, ok := obj.(*types.TypeName); !ok {
 				continue
 			}
 			named, ok := obj.Type().(*types.Named)
 			if !ok {
+				continue
+			}
+			pos := named.Obj().Pos()
+			position := p.Fset.Position(pos)
+			defFileName := filepath.Base(position.Filename)
+			if defFileName != fileName {
 				continue
 			}
 			if _, ok := named.Underlying().(*types.Struct); ok {
